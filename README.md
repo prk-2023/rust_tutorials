@@ -1,5 +1,5 @@
 # rust_tutorials
 
-- contains docs on how to use rust tools, features, ecosystem.
+- docs, rust tools, features, ecosystem .. and more
 - cargo projects for practice
 - 
