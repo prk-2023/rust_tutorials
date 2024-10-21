@@ -1,0 +1,6 @@
+[package]
+name = "ownership_borrowing_referencing_slices"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
