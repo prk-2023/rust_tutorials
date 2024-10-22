@@ -1,6 +1,27 @@
 # Ownership, Reference, Borrowing, Slicing:
 ---
 
+Ownership in Rust refers to the relationship between a value and the variable that owns it.
+The Owner of the value is responsible for allocation and deallocating the value when its not required.
+
+The allocation of the value happens on stack or heap memory which depends on their type and  how they are 
+used in the program.
+
+Stack Allocated Values:
+
+    Values that have fixed sizes and known at compilation time, example Integer, Boolean, tuple... (basic
+    primitive data types). 
+    These values are allocated on the stack and automatically de-allocated when they go out of scope.
+
+Heap Allocated Values:
+
+    These values are those that have a dynamic size, such as strings type, vectors, and boxes. 
+    These values are allocated on the heap using dynamic memory allocation, and are deallocated when the 
+    value is dropped. 
+    Note: the dynamic memory allocation is done by the related memory calls that in turn gets it from OS.
+
+In both type the concept of ownership applies and the owner of the value is responsible for ensuring that
+it is properly deallocated when its no longer needed.
 - Ownership is the fundamental concept of Rust. They are sets of rules that govern how Rust program manages
   memory.
 
@@ -31,6 +52,35 @@
     1. **Each value in Rust has an owner.**
     2. **There can only be one owner at a time.**
     3. **When the owner goes out of scope, the value will be dropped.**
+
+    - Ownership is the fundamental concept of Rust. 
+    - The rules that govern how Rust program manages memory.
+    - Ownership gives memory safety guarantees without the need for garbage collectors.
+    - Borrowing, reference slices are related to ownership and proper understanding is required for
+      programming in rust.
+    - Ownership helps prevent common programming erros like null ptr dereferences, data race conditions.
+    - Ownership also deals with managing the memory and lifetime of values.
+    - The Rust ownership rules are checked by the compiler specifically by the borrow checker.
+        Borrow Checker: its a part of Rust compiler that checks the code at compilation time and enforces
+        the code(variables ) satisfies the ownership rules. 
+        Borrow checker checks:
+            - Ownership: verify each value has only a single owner, and owner is responsible for
+              deallocating the value when its no longer needed.
+            - Borrowing: make sure the borrowing is done correctly, and the borrowing rules are followed.
+              For example it checks if the value is not borrowed as mutable and immutable at same time 
+            - Lifetime: The borrow checker ensures that the lifetimes of values are correctly managed, and
+              that values are not used after they have gone out of scope.
+
+        Borrow checker is a key feature of the Rust language, and it helps to prevent common errors such 
+        as null pointer dereferences, use-after-free bugs, and data corruption.
+
+    - In addition to borrow checker rust also has a rumtime component called "drop system" that is
+      responsible for deallocating values that go out of scope ( the DropSystem only drops those variables
+      that are properly managed by the borrow checker)
+    - If the borrow checker finds a error the program will not be compiled.
+    - The rules have deep implications for the rust language.
+
+### Ownership Examples:
 
 - **Example 1: Simple Ownership**
     
