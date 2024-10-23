@@ -1,6 +1,18 @@
 # Ownership, Reference, Borrowing, Slicing:
 ---
 
+Meta: Before learning about Ownership there are 2 important aspects to note:
+
+1. Rust aims at speed and security and it achives this with "zero-cost abstractions". 
+Zero Cost Abstractions: Rust abstractions cost as little as possible in order to make them work.
+Ownership is a zero-cost anstraction as all the analysis is done at Compilation time and does not show in
+the run-time cost of these features.
+
+2. sharp learning curve: this is the result of programmers mental model does not match the actual rules set
+   by Rust programming language. 
+
+## Ownership:
+
 Ownership in Rust refers to the relationship between a value and the variable that owns it.
 The Owner of the value is responsible for allocation and deallocating the value when its not required.
 
@@ -53,15 +65,18 @@ it is properly deallocated when its no longer needed.
     2. **There can only be one owner at a time.**
     3. **When the owner goes out of scope, the value will be dropped.**
 
-    - Ownership is the fundamental concept of Rust. 
-    - The rules that govern how Rust program manages memory.
-    - Ownership gives memory safety guarantees without the need for garbage collectors.
-    - Borrowing, reference slices are related to ownership and proper understanding is required for
-      programming in rust.
-    - Ownership helps prevent common programming erros like null ptr dereferences, data race conditions.
-    - Ownership also deals with managing the memory and lifetime of values.
-    - The Rust ownership rules are checked by the compiler specifically by the borrow checker.
-        Borrow Checker: its a part of Rust compiler that checks the code at compilation time and enforces
+- Ownership is the fundamental concept of Rust. 
+- The rules that govern how Rust program manages memory.
+- Ownership gives memory safety guarantees without the need for garbage collectors.
+- Borrowing, reference slices are related to ownership and proper understanding is required for programming
+  in rust.
+  - Ownership helps prevent common programming erros like null ptr dereferences, data race conditions.
+  - Ownership also deals with managing the memory and lifetime of values.
+  - The Rust ownership rules are checked by the compiler specifically by the borrow checker.
+
+
+### **Borrow Checker**: 
+    Its a part of Rust compiler that checks the code at compilation time and enforces
         the code(variables ) satisfies the ownership rules. 
         Borrow checker checks:
             - Ownership: verify each value has only a single owner, and owner is responsible for
