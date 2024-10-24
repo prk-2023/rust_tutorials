@@ -3,6 +3,8 @@
 
 **ToC** ---
 
+Part 00:
+
     - **Module Basics**
         - **What are modules in Rust?**: Understand the concept of modules in Rust and how they are used to
           organize code.
@@ -33,8 +35,10 @@
 
     -  **Module Exports**
         - **Exporting modules**: how to use the `pub` keyword to export modules.
-        - **Exporting module items**: how to export specific items from a module using the `pub` keyword.
+        - **Exporting module items**: (re-export) export specific items from a module using `pub` keyword.
         - **Exporting modules with aliases**: how to export modules with aliases using the `pub` keyword.
+
+Part 01:
 
     - **Module Patterns**
         - **Module patterns**: different module patterns available, such as `mod.rs`,`lib.rs`,`main.rs`.
@@ -54,4 +58,6 @@
 
 ---
 
-TODO: best Practices and advanced module topics 
+TODO:
+1. [Done] best Practices and advanced module topics  [ ./Readme_Modules-extra-01.md ]
+2. [    ] Advance module topics

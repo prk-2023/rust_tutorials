@@ -22,3 +22,6 @@ pub mod mymath {
         }
     }
 }
+
+//re-export add_num ( this make access add_num directly from main)
+pub use self::mymath::addition::add_num;

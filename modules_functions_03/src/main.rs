@@ -42,5 +42,9 @@ fn main() {
 
         let total: i32 = physics::mymath::addition::add_num(4, 5);
         println!(" calling sub modules example: add 4, 5= {}", total);
+
+        // since add_num is re-exporeted in physics.rs it can be called directly
+        let total: i32 = physics::add_num(9, 9);
+        println!(" calling sub modules's re-exported add_num(9,9) {}", total);
     }
 }

@@ -45,7 +45,9 @@
     
     By default modules and its functions are private and are required to make them public, i.e
     To make a module or its contents available to other modules, you need to export it. 
-    You can do this using the `pub` keyword. For example:
+    You can do this using the `pub` keyword.
+    This make the module and its contents visible outside the current module.
+    For example:
     
     ```rust 
         pub mod electric_functions {
@@ -55,6 +57,29 @@
 
     This makes the `electric_functions` module available to other modules.
 
+
+## re-export : 
+    `pub use` statement is used to re-export items from a module, make them visible at the current scope:
+
+    ex:
+    ```rust 
+        // my_module.rs 
+        pub mod my_submodule { 
+            pub fn my_func () {
+                println!("hello from my_func");
+            }
+        }
+        // my_func is re-exported from this module and can be directly accessed from main as below
+        pub use self::my_submodule::my_func;
+
+        //main.rs 
+        mod my_module;
+        fn main() {
+            my_module::my_func(); // this is possible and does not require my_module::my_submodule::my_func 
+        }
+
+    ```
+    re-exporting is useful when you want an items from a module to export that is not the current module.
 ### **Example: Physics module**
 
     Let's create a `physics` module that contains functions related to physics. 
