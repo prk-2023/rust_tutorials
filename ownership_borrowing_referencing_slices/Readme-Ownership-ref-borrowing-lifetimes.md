@@ -8,13 +8,13 @@ Zero Cost Abstractions: Rust abstractions cost as little as possible in order to
 Ownership is a zero-cost anstraction as all the analysis is done at Compilation time and does not show in
 the run-time cost of these features.
 
-2. sharp learning curve: this is the result of programmers mental model does not match the actual rules set
-   by Rust programming language. 
+2. sharp learning curve: the programmers mental model does not match the actual rules set by Rust which
+   leads to longer learning curve.
 
 ## Ownership:
 
 Ownership in Rust refers to the relationship between a value and the variable that owns it.
-The Owner of the value is responsible for allocation and deallocating the value when its not required.
+The __Owner__ of the value is responsible for **allocation and deallocating** the value when not required.
 
 The allocation of the value happens on stack or heap memory which depends on their type and  how they are 
 used in the program.
@@ -34,10 +34,11 @@ Heap Allocated Values:
 
 In both type the concept of ownership applies and the owner of the value is responsible for ensuring that
 it is properly deallocated when its no longer needed.
+
 - Ownership is the fundamental concept of Rust. They are sets of rules that govern how Rust program manages
   memory.
 
-- The rules have deep implications for the rust language.
+- These rules have deep implications for the rust language.
 
 - Ownership gives memory safety guarantees without the need for garbage collectors.
 
@@ -47,10 +48,10 @@ it is properly deallocated when its no longer needed.
 
 - Rust Ownership deals with managing the memory and lifetime of values. 
 
-- Rust has a different approch for managing memory through a system of ownership with a set of rules that
-  the compiler checks.
+=> Rust has a different approch for managing memory through a system of ownership with a set of rules that
+the compiler checks.
 
-  If Any of these rules get violated then the program will not compile.
+  * If Any of these rules get violated then the program will not compile.
 
   This concept of ownership is a new compared with the current systems programming languages. And
   understanding the concept of ownership is mandatory for developing code taht is safe and efficient.
@@ -60,12 +61,13 @@ it is properly deallocated when its no longer needed.
 
   The owner is responsible for ensuring that the value is valid and accessible for as long as it's needed.
 
-- **Rules of Ownership**:  There are three rules of ownership in Rust:
+## **Rules of Ownership**:  
+
+    There are three rules of ownership in Rust:
     1. **Each value in Rust has an owner.**
     2. **There can only be one owner at a time.**
     3. **When the owner goes out of scope, the value will be dropped.**
 
-- Ownership is the fundamental concept of Rust. 
 - The rules that govern how Rust program manages memory.
 - Ownership gives memory safety guarantees without the need for garbage collectors.
 - Borrowing, reference slices are related to ownership and proper understanding is required for programming
@@ -76,19 +78,25 @@ it is properly deallocated when its no longer needed.
 
 
 ### **Borrow Checker**: 
-    Its a part of Rust compiler that checks the code at compilation time and enforces
-        the code(variables ) satisfies the ownership rules. 
-        Borrow checker checks:
-            - Ownership: verify each value has only a single owner, and owner is responsible for
-              deallocating the value when its no longer needed.
-            - Borrowing: make sure the borrowing is done correctly, and the borrowing rules are followed.
-              For example it checks if the value is not borrowed as mutable and immutable at same time 
-            - Lifetime: The borrow checker ensures that the lifetimes of values are correctly managed, and
-              that values are not used after they have gone out of scope.
 
-        Borrow checker is a key feature of the Rust language, and it helps to prevent common errors such 
-        as null pointer dereferences, use-after-free bugs, and data corruption.
+    Its a part of Rust compiler that checks the code at compilation time and enforces the code(variables ) 
+    satisfies the ownership rules. 
 
+    Borrow checker checks: ( static / compilation checks )
+
+        - Ownership: verify each value has only a single owner, and owner is responsible for deallocating
+          the value when its no longer needed.
+
+        - Borrowing: make sure the borrowing is done correctly, and the borrowing rules are followed.
+          For example it checks if the value is not borrowed as mutable and immutable at same time 
+
+        - Lifetime: The borrow checker ensures that the lifetimes of values are correctly managed, and
+          that values are not used after they have gone out of scope.
+
+    Borrow checker is a key feature of the Rust language, and it helps to prevent common errors such 
+    as null pointer dereferences, use-after-free bugs, and data corruption.
+
+    Drop System ( runtime check ):
     - In addition to borrow checker rust also has a rumtime component called "drop system" that is
       responsible for deallocating values that go out of scope ( the DropSystem only drops those variables
       that are properly managed by the borrow checker)
