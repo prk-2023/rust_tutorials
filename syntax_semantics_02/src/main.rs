@@ -1,7 +1,13 @@
 use std::{i32, io};
 
+#[allow(unused_variables)]
 fn main() {
     loop {
+        let str1 = "Rust syntax ";
+        let str2 = "semantics!";
+        // format macro takes arguments and formats as per the arguments
+        let new_str = format!("{str1} {str2}");
+        println!("{new_str}");
         println!("--------------------");
         println!("Select the example to run");
         println!("0. quite the program");
@@ -188,7 +194,7 @@ fn main() {
 
                 //borrowing and reference
                 let s = String::from("hello"); // s is the owner of the string "hello"
-                let _len = calculate_length(&s); // s is borrowed, but still owns the string
+                let len = calculate_length(&s); // s is borrowed, but still owns the string
             }
 
             _ => println!("Error! Invalid Input try again"),
@@ -206,6 +212,6 @@ fn greeting(message: &str, times: u8, int_var: &mut i32) -> (u8, i32) {
     (times_updated, *int_var)
 }
 
-fn calculate_length(text: &str) -> usize {
-    text.len()
+fn calculate_length(text: &str) -> i32 {
+    text.len().try_into().unwrap()
 }
