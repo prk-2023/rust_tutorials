@@ -12,7 +12,6 @@ pub mod physics;
 
 // allow attribute  to supress warming messages
 #[allow(unused_variables)]
-
 fn main() {
     loop {
         // read input number from user

@@ -1,6 +1,8 @@
-//physics module
-//1. this function can be used in the caller functions as
-// use physics;  physics::calculate_energy()...
+/* physics module
+ *
+ * This function can be used in the caller functions as
+ *  use physics;  physics::calculate_energy()...
+ */
 pub fn calculate_energy(mass: f64, vel: f64) -> f64 {
     0.5 * mass * vel
 }
