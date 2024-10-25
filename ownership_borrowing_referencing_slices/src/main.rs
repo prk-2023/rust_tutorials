@@ -6,12 +6,18 @@ struct SomeStruct {
     num: i32,
 }
 
+//lifetime
+#[allow(dead_code)]
+struct Foo<'a> {
+    x: &'a i32,
+}
+
 //function to print the structure
 fn print_some_struct(the_struct: SomeStruct) {
     println!("{:?}", the_struct); // :? tells the formater to use the implementation of debug to print the                                   // struct.
 }
 
-#[allow(dead_code)]
+#[allow(unused_variables)]
 fn main() {
     // Ownership and scope :
     //let mut my_struct: SomeStruct = SomeStruct { num: 100 };
@@ -89,6 +95,39 @@ fn main() {
     );
 
     // moving ownerhship back and forth is inconvinent and rust solves with borrowing:
+
+    fn sum_vec(v: &Vec<i32>) -> i32 {
+        v.iter().fold(0, |a, &b| a + b)
+    }
+    // Borrow two vectors and sum them.
+    // This kind of borrowing does not allow mutation through the borrowed reference.
+    fn foo(v1: &Vec<i32>, v2: &Vec<i32>) -> i32 {
+        // Do stuff with `v1` and `v2`.
+        let s1 = sum_vec(v1);
+        let s2 = sum_vec(v2);
+        // Return the answer.
+        s1 + s2
+    }
+
+    let v1 = vec![1, 2, 3];
+    let v2 = vec![4, 5, 6];
+
+    let answer = foo(&v1, &v2);
+    println!("{}", answer);
+
+    // mutable reference:
+    let mut x = 5;
+    {
+        // remove {} will cause compiler error : can not borrow x as immutable as it borroes as mut
+        let y = &mut x;
+        *y += 1;
+    }
+    println!("{}", x);
+
+    // lifetime with struct
+    let y = &5; // This is the same as `let _y = 5; let y = &_y;`.
+    let f = Foo { x: y };
+    println!("{}", f.x);
 }
 
 fn take_ownership(s: String) -> String {

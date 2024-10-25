@@ -166,11 +166,17 @@ the compiler checks.
 - Mem safety: Its a property of a program where every memory pts used always point to a valid memory.
     i.e allocated and of the correct type/size.
 
+    - C, C++ language design overlooks the property of memory safety, and puts the responsibility on the
+      programmer and the design of the application. ( this is generally error prone as there are many
+      constrains which might be overlooked by the programmer or by the programs design )
+
 - mem safety is a correctness issue: 
+
     A memory unsafe program may crash or produce non-deterministic output depending on the bug.
 
   - There are many languages that allow us to write "memory unsafe" code in the sense that it's fairly easy
-    to understand bugs. Ex:
+    to understand bugs. 
+    Ex:
     - Dangling pointer: pts that point to invalid data ( this will be more clear when we look at how data is
       stored in memory). (https://stackoverflow.com/questions/17997228/what-is-a-dangling-pointer)
     - Double free: trying to free that same memory location more then once, this can leade to
@@ -178,7 +184,7 @@ the compiler checks.
     - Unlike languages that come with GC, Rust uses the concept of owenship, Borrowing to handle issues
       related to memory.
 
-    - So when we say rust comes with memory safety, we refer to the fact that by default Rust compiler does
+    => So when we say rust comes with memory safety, we refer to the fact that by default Rust compiler does
       not allow us to wire core that is not memory safe. 
 
 ## Stack and Heap:
@@ -198,8 +204,8 @@ the compiler checks.
   allocating on the heap or just 'allocating'. 
   ( pusing values onto stack is not called pushing )
 
-- The pts to the heap is known and fixed size, you can store the ptr on the stack, but the actual data is
-  stored on heap.
+- The ptr to the heap is known and fixed size => you can store the ptr on the stack, but the actual data is
+  stored on heap memory and the pointer points to the address on the heap.
 
 - Pushing to the stack is faster then allocating on the heap beacause they allocator never has to search for
   a place to store new value. And the location is always at the to of the stack.
@@ -437,37 +443,594 @@ Calling greet() in between those assignments is no longer problem either:
     greet(a);
 ```
 
-### Return values and scope:
+- By default a reference is read-only :
+    
+    ```rust 
+
+        fn foo (v: &Vec<i32) {
+            v.push(5);
+        }
+        let v = vec![];
+        foo(&v);
+    ```
+    the above code will give error :
+        error: cannot borrow immutable borrowed content `*v` as mutavle v.push(5);
+
+    -> push a value mutates the vector and we are not allows as v is the by default immutable.
+
+- &mut reference: these are second kind of references :
+    
+        `&mut T` 
+
+    Mutable reference allows you to mutate the resource you're borrowing Ex:
+
+    ```rust 
+        let mut x = 5;
+        {
+            let y = &mut x;
+            *y += 1;
+        }
+        println!("{}", x); // this outputs 6
+    ```
+    Here we made `y` a mutable reference to `x` and then add one to the the thing `y` points at.
+
+    Note In the above example `x` also need to be marked/defined as mutable variable.
+
+    `*y`: because y is `&mut` reference, we need to use `*` to access the contents of the reference.
+
+    - In the above example if we remote { } ( i.e remove that extra scope ) the program will error on
+      compilation:
+
+      ```
+      error : cannot borrow `x` as immutable because it is also borrowed as mutable
+        println!("{}", x);
+                       ^
+        
+      note: previous borrow of `x` occurs here; the mutable borrow prevents subsequent moves, borrows, 
+      or modification of `x` until the borrow ends
+
+        let y = &mut x;
+                     ^
+
+      note: previous borrow ends here
+      fn main() {
+
+      }
+      ^
+      ```
+
+      => there are Rules while using References.
+
+- Borrowing Rules:
+    
+    First, any borrow must last for a scope no greater than that of the owner. 
+    Second, you may have one or the other of these two kinds of borrows, but not both at the same time:
+
+    1. one or more references (&T) to a resource,
+    2. exactly one mutable reference (&mut T).
+   
+=>  Summing up references:
+
+    In Rust, references are used to borrow values without taking ownership of them.
+    
+    There are two types of references: 
+        - immutable references (`&`) 
+        - mutable references (`&mut`). 
+
+    **Mutable References**
+    A mutable reference is a reference that allows you to modify the value it points to. 
+    It's denoted by the `&mut` keyword. Here's an example:
+
+    ```rust
+        let mut x = 5;
+        let mut_ref = &mut x;
+        *mut_ref = 10;
+        println!("{}", x); // prints 10
+    ```
+
+    In this example, we create a mutable reference `mut_ref` to the value `x`. 
+    We can then use the dereference operator `*` to modify the value `x` through the reference.
+
+    **Borrowing Rules**
+
+    Rust has a set of borrowing rules that ensure memory safety.
+
+    1. You can create multiple immutable references to the same value, and they can coexist.
+    2. **You can have only one mutable reference to a value**: You can create only one mutable reference to
+       a value at a time. If you try to create another mutable reference to the same value, the compiler 
+       will prevent it.
+    3. **You cannot have a mutable ref and an immutable ref to the same value at the same time**: If you
+       have a mutable reference to a value, you cannot create an immutable reference to the same value until
+       the mutable reference goes out of scope.
+    4. **References must be valid for the entire duration of the borrow**: A reference must be valid for the
+       entire duration of the borrow. If the reference becomes invalid (e.g., because the value it points 
+       to goes out of scope), the borrow is invalid.
+
+    Example that demonstrates the borrowing rules:
+
+    ```rust
+        let mut x = 5;
+        // Create an immutable reference to x
+        let imm_ref = &x;
+        println!("{}", imm_ref); // prints 5
+        
+        // Create another immutable reference to x
+        let imm_ref2 = &x;
+        println!("{}", imm_ref2); // prints 5
+
+        // Try to create a mutable reference to x
+        // This will fail because we already have immutable references to x
+        // let mut_ref = &mut x; // Error: cannot borrow `x` as mutable
+
+        // Drop the immutable references
+        drop(imm_ref);
+        drop(imm_ref2);
+
+        // Now we can create a mutable reference to x
+        let mut_ref = &mut x;
+        *mut_ref = 10;
+        println!("{}", x); // prints 10
+
+    ```
+
+In example, we create two immutable references to `x` and then try to create a mutable reference to `x`. 
+The compiler prevents us from creating the mutable reference because we already have immutable references to `x`. We then drop the immutable references and create a mutable reference to `x`, which is allowed.
+
+**Borrow Checker**
+
+Borrow checker checks borrowing rulest at compilation and prevents compilation if checker detects a 
+borrowing error, it will prevent the code from compiling.
+
+**Smart Pointers** [ TODO: ]
+
+Rust's smart pointers, such as `Rc` and `Arc`, also follow the borrowing rules. 
+These smart pointers provide a way to manage shared ownership of values and ensure memory safety.
+
+- As we can only have one &mut at a time, it is impossible to have a data race. 
+This is how Rust prevents data races at compile time: we’ll get errors if we break the rules.
+
+- Use after free:
+    References should not live longer then the resource they refer to. 
+    Rust checks the scope you references to ensure that this is true. ( if rust does not check this
+    property, we would accidentally use a reference which was invalid.
+
+    let y: &i32;
+    {
+        let x = 5;
+        y = &x;
+    }
+    println!("{}",y);
+
+    this will give error: `x` does not live long enough.....
+
+    or `y` is only valied for the scope where `x` exists, as `x` gets droped it becomes invalid to refer to
+    it.
+
+    Same error occues when the reference is declated before the variable it referes to. This is beacuse
+    resoures within the same scope are freed in the opposite order they were declared.
+
+    let y: &i32;
+    let x = 5;
+    y = &x;
+    println!("{}",y);
+
+    this will give error: `x` does not live long enough. 
+
+    here y is declared before x meaning y lives longer then x which is not allowed.
+
+
+### Lifetimes:
+
+    Rust has a focus on safety and speed, which it accomplishes through zero-cost abstractions.
+    owenership system is an example of zero-cost abstraction. 
+
+    All the owenership analysis is done at compilation time. ( we do not have to worry of the runtime cost
+    for any of the owenership features.)
+
+- Lifetime is a concept that refers to the scope for which a reference to a value is valid.
+
+- Lifetime is a way to specify the relationship between the lifetime of a reference and the lifetime of the
+  value it references.
+
+- Why lifetimes?
+    Every reference has a lifetime, which is scope for which the reference is valid. 
+    If a reference outlives the value it references, it can lead to dangling pointers, which are pointers
+    that points to memory that has already been deallocated. ( this causes undefined behavioud and crashes.)
+
+    To prevent this Rust requires you to specify the lifetime of a reference when you create it.
+    This ensures that the reference is only valid for as long as the value it references exists.
+    ```rust 
+        let r;              // Introduce reference: `r`.
+        {
+            let i = 1;      // Introduce scoped value: `i`.
+            r = &i;         // Store reference of `i` in `r`.
+        }                   // `i` goes out of scope and is dropped.
+        println!("{}", r);  // `r` still refers to `i`.
+    ``` 
+    error:
+
+    to fix the above error step 4 has to be avoided after step 3. 
+    The compiler check can report this at compilation time. But the issue gets more complicated when we have
+    functions that take reference arguments.
+
+    ```rust 
+        fn skip_prefix(line: &str, prefix: &str) -> &str {
+            // ...
+          line
+        }
+
+        let line = "lang:en=Hello World!";
+        let lang = "en";
+
+        let v;
+        {
+            let p = format!("lang:{}=", lang);  // -+ `p` comes into scope.
+            v = skip_prefix(line, p.as_str());  //  |
+        }                                       // -+ `p` goes out of scope.
+        println!("{}", v);
+    ```
+    Here we have a fun skip_prefix which takes two &str references as parameters and returns a single &str 
+    reference.
+    We call it by passing in references to line and p: Two variables with different lifetimes. 
+    Now the safety of the println!-line depends on whether the reference returned by skip_prefix function
+    references the still living line or the already dropped p string.
+    Because of the above ambiguity, Rust will refuse to compile the example code.
+
+    To get it to compile we need to tell the compiler more about the lifetimes of the references.
+    This can be done by making the lifetimes explicit in the function declaration:
+
+    ```rust 
+        fn skip_prefix<'a,'b>( line: &'a str, prefix: &'b str) -> &'a { 
+            // ..... 
+        }
+    ```
+    The first change was adding the <'a, 'b> after the method name. 
+        This introduces two lifetime parameters: 'a and 'b. 
+
+    Next, each reference in the function signature was associated with one of the lifetime parameters by 
+    adding the lifetime name after the &. 
+    This tells the compiler how the lifetimes between different references are related.
+
+    As a result the compiler is now able to deduce that the return value of `skip_prefix` has the same 
+    lifetime as the `line` parameter, which makes the `v` reference safe to use even after the p goes out 
+    of scope in the original example.
+
+    In addition to the compiler being able to validate the usage of `skip_prefix` return value, it can also 
+    ensure that the implementation follows the contract established by the function declaration. 
+    This is useful especially when you are implementing traits.
+
+- Lifetime Syntax:
+
+    lifetimes are denoted by a single quote followed by a name, such as 'a or 'b.
+
+    ex:
+        fn foo<'a'> ( x: &'a i32) -> &'a i32 {
+            x
+        }
+
+    'a : specified as parameter to "foo" function. 
+    x parameter is reference to an i32 with lifetime 'a, and retuen value is also a reference to an i32 with
+    a lifetime 'a.
+    
+    A function can have ‘generic parameters’ between the < >s of which lifetimes are one kind.
+ 
+    We use < > to declare our lifetimes. This says that `foo` has one lifetime, 'a. 
+    If we had two reference parameters with different lifetimes, it would look like this: foo<'a,'b> (...)
+
+    In our parameter list, ...(x: &'a i32) 
+    if we want &mut ref then it would be ...(x: &'a mut i32)
+
+- In Structs: You’ll also need explicit lifetimes when working with structs that contain references:
+    
+    ```rust 
+        struct Foo<'a> {
+            x: &'a i32,
+        }
+
+        fn main() {
+            let y = &5; // This is the same as `let _y = 5; let y = &_y;`.
+            let f = Foo { x: y };
+
+            println!("{}", f.x);
+        }
+    ```
+    Above we see Struct also have litetime. similar to functions.
+    
+    struct Foo< 'a >{ ...} 
+
+    declares a lifetime and 
+
+        x: &'a i32,
+
+    uses it.
+
+    The reason we need lifetime is to ensure that any reference to a `Foo` cannot outlive the reference to
+    an i32 it contains.
+
+- impl blocks:
+
+    let's implement a method on `Foo`:
+
+    ```rust 
+        struct Foo<'a> {
+            x: &'a i32,
+        }
+
+        impl<'a> Foo<'a> {
+            fn x(&self) -> &'a i32 { self.x }
+        }
+
+        fn main() {
+            let y = &5; // This is the same as `let _y = 5; let y = &_y;`.
+            let f = Foo { x: y };
+
+            println!("x is: {}", f.x());
+        }
+    ```
+    we need to declare a lifetime for `Foo` in the `impl` line.
+    We repeat 'a twice, like on functions: `impl<'a>` defines a lifetime 'a, and `Foo<'a>` uses it.
+
+- multiple lifetimes:
+
+    If you have multiple references, you can use the same lifetime multiple times:
+
+    #![allow(unused_variables)]
+    fn main() {
+        fn x_or_y<'a>(x: &'a str, y: &'a str) -> &'a str {
+            x 
+        }
+    }
+
+    this says `x and y` are both alive for the same scope , and return is also alive for that scope.
+
+    For function which have different lifetimes for `x and y`:
+
+    #![allow(unused_variables)]
+    fn main() {
+        fn x_or_y<'a, 'b>(x: &'a str, y: &'b str) -> &'a str {
+           x 
+        }
+    }
+    x and y have different valid scopes, but the return value has the same lifetime as x.
+
+- Thinking in Scope:
+
+    A way to think about lifetimes is to visualize the scope that a reference is valid for. 
+    Ex:
+    ```rust 
+        fn main() {
+            let y = &5;     // -+ `y` comes into scope.
+                            //  |
+                            // Stuff...     //  |
+                            //  |
+        }                   // -+ `y` goes out of scope.
+
+    ```
+    Adding in our Foo:
+
+    ```rust 
+        struct Foo<'a> {
+            x: &'a i32,
+        }
+
+        fn main() {
+            let y = &5;           // -+ `y` comes into scope.
+            let f = Foo { x: y }; // -+ `f` comes into scope.
+                                  //  |
+                                  // Stuff...           
+                                  //  |
+                                  //  |
+        }                         // -+ `f` and `y` go out of scope.
+    ```
+    f lives within the scope of y, so everything works.
+
+    But wrong usage the code will fail: ex:
+    ```rust 
+        struct Foo<'a> {
+            x: &'a i32,
+        }
+        
+        fn main() {
+            let x;                    // -+ `x` comes into scope.
+                                      //  |
+            {                         //  |
+                let y = &5;           // ---+ `y` comes into scope.
+                let f = Foo { x: y }; // ---+ `f` comes into scope.
+                x = &f.x;             //  | | This causes an error.
+            }                         // ---+ `f` and y go out of scope.
+                                      //  |
+            println!("{}", x);        //  |
+        }                             // -+ `x` goes out of scope.
+    ```
+    The scopes of `f` and `y` are smaller than the scope of `x`. 
+    But when we do x = &f.x, we make x a reference to something that’s about to go out of scope.
+
+    Named lifetimes are a way of giving these scopes a name. 
+    Giving something a name is the first step towards being able to talk about it.
+    
+- 'static: 
+
+    The lifetime named ‘static’ is a special lifetime. 
+    It signals that something has the lifetime of the entire program. 
+    Most Rust programmers first come across 'static when dealing with strings:
+    
+    ```rust 
+        #![allow(unused_variables)]
+        fn main() {
+            let x: &'static str = "Hello, world.";
+        }
+    ```
+    String literals have the type " &'static str  " because the reference is always alive: they are baked 
+    into the data segment of the final binary.
+
+    ```rust 
+    #![allow(unused_variables)]
+    fn main() {
+        static FOO: i32 = 5;
+        let x: &'static i32 = &FOO;
+    }
+    ```
+
+    Another example are globals:
+
+    ```rust 
+        #![allow(unused_variables)]
+        fn main() {
+            static FOO: i32 = 5;
+            let x: &'static i32 = &FOO;
+        }
+    ``` 
+    This adds an i32 to the data segment of the binary, and x is a reference to it.
+
+- Only things relating to references (such as a struct which contains a reference) need lifetimes.
+
+- Return values and scope:
 :
 - Return values can also transfer owenership
 
 example:
-```
-    fn main() {
-        let s1 = gives_ownership();     // gives_ownership moves its return
-                                        // value into s1
-        let s2 = String::from("hello"); // s2 comes into scope
-        let s3 = takes_and_gives_back(s2); // s2 is moved into
-                                           // takes_and_gives_back, which also
-                                           // moves its return value into s3
-    } 
-    // Here, s3 goes out of scope and is dropped. s2 was moved, so nothing
-    // happens. s1 goes out of scope and is dropped.
+    ```
+        fn main() {
+            let s1 = gives_ownership();     // gives_ownership moves its return
+                                            // value into s1
+            let s2 = String::from("hello"); // s2 comes into scope
+            let s3 = takes_and_gives_back(s2); // s2 is moved into
+                                               // takes_and_gives_back, which also
+                                               // moves its return value into s3
+        } 
+        // Here, s3 goes out of scope and is dropped. s2 was moved, so nothing
+        // happens. s1 goes out of scope and is dropped.
 
-    fn gives_ownership() -> String {    // gives_ownership will move its
-                                        // return value into the functions
-                                        // that calls it
+        fn gives_ownership() -> String {    // gives_ownership will move its
+                                            // return value into the functions
+                                            // that calls it
 
-    let some_string = String::from("yours"); // some_string comes into scope
-        some_string                          // some_string is returned and
-                                             // moves out to the calling
-                                             // function
+        let some_string = String::from("yours"); // some_string comes into scope
+            some_string                          // some_string is returned and
+                                                 // moves out to the calling
+                                                 // function
+        }
+        // This function takes a String and returns one
+        fn takes_and_gives_back(a_string: String) -> String { 
+            // a_string comes into scope
+
+            a_string  // a_string is returned and moves out to the calling function
+        }
+    ```
+
+Summery: Lifetime
+
+    Rust has several rules that govern how lifetimes work:
+
+    1. Lifetime parameters:  are specified using the syntax 'a, 'b, etc. 
+    These parameters can be used to specify the lifetime of a reference.
+    
+    2. Lifetime bounds: are specified using the syntax T: 'a, where T is a type and 'a is a lifetime. 
+    This means that the type T must outlive the lifetime 'a.
+
+    3. Lifetime inference: Rust can often infer the lifetime of a reference based on the context in 
+    which it is used.
+
+    4. Lifetime subtyping: Rust allows lifetime subtyping, which means that a reference with a shorter 
+    lifetime can be used where a reference with a longer lifetime is expected.
+    
+    Common lifetime patterns:
+    
+    1. Static lifetime: The static lifetime is denoted by the 'static keyword. 
+    It means that a reference is valid for the entire duration of the program.
+
+    2. Input lifetime: The input lifetime is denoted by the 'a keyword. 
+    It means that a reference is valid for as long as the input value exists.
+
+    3. Output lifetime: The output lifetime is denoted by the 'b keyword. 
+    It means that a reference is valid for as long as the output value exists.
+
+    // Example 1: Static lifetime
+    let s: &'static str = "hello";
+    
+    // Example 2: Input lifetime
+    fn foo<'a>(x: &'a i32) -> &'a i32 {
+        x
     }
-    // This function takes a String and returns one
-    fn takes_and_gives_back(a_string: String) -> String { 
-        // a_string comes into scope
 
-        a_string  // a_string is returned and moves out to the calling function
+    // Example 3: Output lifetime
+    fn bar<'a, 'b>(x: &'a i32) -> &'b i32 {
+        x
     }
-```
-  
+
+    // Example 4: Lifetime bounds
+    fn baz<'a, T: 'a>(x: T) -> &'a T {
+        &x
+    }
+    
+ ---
+ #### copy and clone:
+
+    `Copy` and `Clone` are two traits that allow to create a copy of a value, but they serve different
+    purpose and have different implications.
+
+    * **Copy**:
+
+    The `Copy` trait is used to create a copy of a value by simply copying its bits. 
+    This is a shallow copy, meaning that it only copies the top-level value and does not recursively 
+    copy any nested values.
+
+    When you implement the `Copy` trait for a type, you're indicating that the type can be safely copied 
+    by simply copying its bits. This is typically used for small, primitive types like integers, booleans, 
+    and characters.
+    While implmenting `copy trait` its important to keep in mind the complexity of copy and how expensive
+    the implementation can be.
+
+    example:
+    ```rust
+        let x = 5; // x is a Copy type
+        let y = x; // y is a copy of x
+    ```
+    In this example, `y` is a copy of `x`, and both `x` and `y` can be used independently.
+
+    * **Clone**
+
+    `Clone` trait is used to create a deep copy of a value. 
+    This means that it recursively copies all nested values, not just the top-level value.
+
+    When you implement the `Clone` trait for a type, you're indicating that the type can be safely cloned by
+    recursively copying all its nested values. 
+    This is typically used for more complex types like structs, enums, and collections.
+
+    example:
+    ```rust
+        #[derive(Clone)]
+        struct Person {
+            name: String,
+            age: u32,
+        }
+
+        let person = Person {
+            name: "John".to_string(),
+            age: 30,
+        };
+
+        let cloned_person = person.clone(); // cloned_person is a deep copy of person
+    ```
+    In the example, `cloned_person` is a deep copy of `person`, and both `person` and `cloned_person` can be used independently.
+
+
+    - **Key differences**
+
+    * **Shallow vs. deep copy**: `Copy` creates a shallow copy, while `Clone` creates a deep copy.
+    * **Performance**: `Copy` is typically faster than `Clone`, since it only copies the top-level value.
+    * **Safety**: `Copy` is safer than `Clone`, since it doesn't recursively copy nested values.
+    * **Usage**: `Copy` is used for small, primitive types, while `Clone` is used for more complex types.
+
+    **When to use each**
+
+    * Use `Copy` when:
+        + Working with small, primitive types.
+        + Need a shallow copy of a value.
+        + want to ensure safety and performance.
+
+    * Use `Clone` when:
+        + Working with complex types like structs, enums, or collections.
+        + Need a deep copy of a value.
+        + Willing to pay the performance cost of recursively copying nested values.
+---
