@@ -7,4 +7,4 @@
 - guessing_game_01
 - syntax_semantics_02
 - modules_functions_03
-- ownership_borrowing_referencing_slices
+- ownership_borrowing_referencing_slices_04
