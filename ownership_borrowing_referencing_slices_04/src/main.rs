@@ -1,4 +1,7 @@
+use std::fs::File;
 use std::io;
+use std::io::Read;
+
 // Derive the Debug  trait for bring clone and copy traits for clone and copy trait methods on variables
 #[derive(Debug, Clone)]
 
@@ -8,7 +11,7 @@ struct SomeStruct {
 
 //lifetime
 #[allow(dead_code)]
-struct Foo<'a> {
+struct Bar<'a> {
     x: &'a i32,
 }
 
@@ -124,10 +127,26 @@ fn main() {
     }
     println!("{}", x);
 
+    // Lifetimes: Specify the scope of a reference. Ensures that a reference to a value is valid
+    // for ceratain peroid of time, and the value is not dropped or moved while the reference is
+    // still in use.
+
     // lifetime with struct
     let y = &5; // This is the same as `let _y = 5; let y = &_y;`.
-    let f = Foo { x: y };
+    let f = Bar { x: y };
     println!("{}", f.x);
+
+    // Lifetimes:
+    let mut file = File::open("/proc/cmdline").unwrap(); //returns File Obj (Is valid for the duration oe main)
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap(); //read_to_string: takes reference to a string obj that is valid
+                                                 // duration of function call.
+    println!("File Contents {}", contents);
+    //create a slice of first 20 characters:
+    let slice = &contents[..21]; // or [0..21]
+    println!("slice of the Contents with 20 characters: {}", slice);
+
+    // Slices:
 }
 
 fn take_ownership(s: String) -> String {
