@@ -101,16 +101,43 @@ safe and controlled. Both are part of the rust standard library "std" -> use std
   Ex 2:
 
   ```rust 
-     use std::cell::RefCell;
+     use std::cell::{Cell,RefCell};
+     struct SomeStruct {
+        regular_field: u8,
+        special_field: Cell<u8>,
+     }
      struct Person {
          name: RefCell<String>,
      }
      fn main() {
-         let person = Person {
+        //Cell:
+        let my_struct = SomeStruct {
+            regular_field: 0,
+            special_field: Cell::new(1),
+        };
+        let new_value = 100;
+        // ERROR: `my_struct` is immutable
+        // my_struct.regular_field = new_value;
+
+        // WORKS: although `my_struct` is immutable, `special_field` is a `Cell`,
+        // which can always be mutated
+        my_struct.special_field.set(new_value);
+        assert_eq!(my_struct.special_field.get(), new_value);
+
+        // ReCell:
+        let c = RefCell::new(5); {
+            let m = c.borrow_mut();
+            assert!(c.try_borrow().is_err());
+        }
+        {
+            let m = c.borrow();
+            assert!(c.try_borrow().is_ok());
+        }
+        let person = Person {
             name: RefCell::new("John".to_string()),
-         };
-         person.name.borrow_mut().push_str(" Doe");
-         println!("{}", person.name.borrow()); // prints "John Doe"
+        };
+        person.name.borrow_mut().push_str(" Doe");
+        println!("{}", person.name.borrow()); // prints "John Doe"
      }
   ```
 
