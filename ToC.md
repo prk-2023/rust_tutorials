@@ -8,3 +8,5 @@
 - syntax_semantics_02
 - modules_functions_03
 - ownership_borrowing_referencing_slices_04
+- structures_05
+- enums_06
