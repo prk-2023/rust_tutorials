@@ -56,7 +56,8 @@ fn main() {
 }
 ```
 
-In this example, we define an enum called `IpAddress` with two possible values: `V4` and `V6`. The `V4` value has four associated `u8` values, and the `V6` value has an associated `String` value.
+In this example, we define an enum called `IpAddress` with two possible values: `V4` and `V6`. The `V4`
+value has four associated `u8` values, and the `V6` value has an associated `String` value.
 
 Methods on Enums
 -----------------
@@ -86,17 +87,26 @@ fn main() {
 }
 ```
 
-In this example, we define a method called `to_string` on the `Color` enum. This method returns a `String` representation of the enum value.
+In this example, we define a method called `to_string` on the `Color` enum. This method returns a `String` 
+representation of the enum value.
 
 Comparison to C and C++
 -------------------------
 
 Enums in Rust are more powerful than enums in C and C++ in several ways:
 
-*   **Associated data**: Rust enums can have associated data, which allows for more complex and expressive data structures. In C and C++, enums are simply a way to define a set of named values, without any associated data.
-*   **Methods**: Rust enums can have methods, which allows for more object-oriented programming. In C and C++, enums are not objects and cannot have methods.
-*   **Pattern matching**: Rust enums can be used with pattern matching, which allows for more expressive and concise code. In C and C++, enums are typically used with switch statements, which can be more verbose and error-prone.
-*   **Type safety**: Rust enums are type-safe, which means that the compiler will prevent you from assigning an invalid value to an enum variable. In C and C++, enums are not type-safe, which can lead to bugs and errors.
+* **Associated data**: Rust enums can have associated data, which allows for more complex and expressive
+  data structures. In C and C++, enums are simply a way to define a set of named values, without any 
+  associated data.
+
+* **Methods**: Rust enums can have methods, which allows for more object-oriented programming. In C and C++,
+  enums are not objects and cannot have methods.
+* **Pattern matching**: Rust enums can be used with pattern matching, which allows for more expressive and
+  concise code. In C and C++, enums are typically used with switch statements, which can be more verbose and
+  error-prone.
+* **Type safety**: Rust enums are type-safe, which means that the compiler will prevent you from assigning
+  an invalid value to an enum variable. In C and C++, enums are not type-safe, which can lead to bugs and 
+  errors.
 
 Why Rust Enums are Unique and Powerful
 ----------------------------------------
@@ -129,7 +139,120 @@ Here are some example use cases for Rust enums:
 
 * **Configuration options**: Rust enums can be used to define a set of configuration options, each with its
   own associated data and behavior.
+
 Conclusion
 ----------
 
-Enums in Rust are a powerful tool for defining and working with sets of named values. They offer a range of features, including associated data, methods, and pattern matching, that make them more expressive and flexible than enums in C and C++. By using Rust enums, you can write more concise, expressive, and type-safe code.
+Enums in Rust are a powerful tool for defining and working with sets of named values. 
+They offer a range of features, including associated data, methods, and pattern matching, that make them 
+more expressive and flexible than enums in C and C++. 
+By using Rust enums, you can write more concise, expressive, and type-safe code.
+
+---
+
+Rust enums are special and they are designed with a deep thought allowing them to be used in a way that
+expand how programming can be done.
+
+- For a regular enum like in other langs 
+
+    enum Color {
+        Red,
+        Blue,
+        Green,
+    }
+    // a function that will print the color
+    fn print_color ( color : Color ) {
+    
+        match color {
+            Color::Red => println!("red"),
+            Color::Blue => println!("blue"),
+            Color::Green => println!("green"),
+        }
+
+    }
+
+    Instead of using a switch(){} operation  like in other languages Rust we use the "match" operation.
+    Unlike switch which does comparision, Rust match does pattern matching.
+    So in the above code if the color was Red then match would print 'red'... 
+
+    enum Color {
+        Yellow,
+        Red,
+        Blue,
+        Green,
+    }
+    If we add 'Yellow' color to the Color enum then the match() Statement will through an error on
+    compilation. Forcing the programmer to handle the messing case "Yellow".
+
+=>  where as in other langauges there is no way to track this .. 
+
+- Apart from the above advantage Rust enums allow to attach functions, which many programming languages do
+  not support.
+  These functions effectively become methods and we declare "implementations" for the enum Color as below:
+
+
+    enum Color {
+        Red,
+        Blue,
+        Green,
+    }
+
+    impl Color {
+        fn green_part (&self) -> bool {
+            match self {
+                Color::Yellow => true,
+                Color::blue => true,
+                _ => false,
+            }
+        }
+        fn is_green (&self) -> bool {    //this fun takes self and pattern matches on itself
+            if let Color::Green = self { //enums that are of type color green will return true else false
+                return true;
+            }
+            return false;
+        }
+    }
+    // a function that will print the color
+    fn print_color ( color : Color ) {
+    
+        match color {
+            Color::Red => println!("red"),
+            Color::Blue => println!("blue"),
+            Color::Green => println!("green"),
+            Color::Yellow => println!("yellow"),
+        }
+    }
+
+=> Methods support of enums are very useful to work with in Rust. 
+
+- Additionaly with rust enums we can do as below:
+    
+    // define a Custom struct with fields
+    struct Custom {
+        name: String,
+        age: usize,
+    }
+    // define a enum with the below methods:
+    enum Item {
+        Foo(String),
+        Bar(usize),
+        Baz(Custom),
+    }
+
+    let foo =  Item::Foo(String::from("hello")); // create a enum foo and pass in a string "hello"
+    if let Item::Foo(s) = foo {   // pattern match the above item foo with a subtype s 
+        println!("{}",s );        // where s is the sub-type that was passed in here its String and then
+    }                             // finally we can print the s as string.
+    
+    this above code: Item::Foo(s) will match the "foo" variable and bind the string value inside Item::Foo
+    to the variable 's', and "if let" statement will then print the string value. We can also use the 
+    match foo { Item::Foo(s) => println!("{}",s),...}
+
+We can do the same operation with Bar and Baz:
+
+    let another_val = Item::Baz(Custom { name : String::from("daybreak"), agr: 69 });
+    if let Item::Baz(custom) = another_val{
+        println!("{}", custom.age);
+    }
+
+
