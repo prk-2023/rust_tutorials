@@ -184,7 +184,7 @@ expand how programming can be done.
     If we add 'Yellow' color to the Color enum then the match() Statement will through an error on
     compilation. Forcing the programmer to handle the messing case "Yellow".
 
-=>  where as in other langauges there is no way to track this .. 
+=>  where as in other languages there is no way to track this .. 
 
 - Apart from the above advantage Rust enums allow to attach functions, which many programming languages do
   not support.
@@ -225,7 +225,7 @@ expand how programming can be done.
 
 => Methods support of enums are very useful to work with in Rust. 
 
-- Additionaly with rust enums we can do as below:
+- Additionally with rust enums we can do as below:
     
     // define a Custom struct with fields
     struct Custom {
@@ -255,4 +255,173 @@ We can do the same operation with Bar and Baz:
         println!("{}", custom.age);
     }
 
+
+---
+
+In Rust, the `Option` type is a way to handle situations where a value might be present or absent. 
+It's a fundamental concept in Rust programming, and it's used extensively throughout the language.
+
+**What is an Option?**
+----------------------
+
+An `Option` is an enum that can have two possible values:
+
+* `Some(value)`: This means that a value is present.
+* `None`: This means that no value is present.
+
+**Creating Options**
+--------------------
+
+You can create an `Option` using the `Some` and `None` variants:
+
+```rust
+let some_value = Some(5);  // Some(i32)
+let no_value = None;  // None
+```
+
+**Pattern Matching**
+--------------------
+
+One of the most common ways to work with `Option`s is through pattern matching. 
+You can use a `match` statement to handle both `Some` and `None` cases:
+
+```rust
+let some_value = Some(5);
+
+match some_value {
+    Some(x) => println!("The value is: {}", x),
+    None => println!("No value is present"),
+}
+```
+
+**Unwrapping Options**
+----------------------
+
+If you're certain that an `Option` has a value, you can use the `unwrap` method to get the value out. 
+However, if the `Option` is `None`, the program will panic:
+
+```rust
+let some_value = Some(5);
+let value = some_value.unwrap();  // value is now 5
+
+let no_value = None;
+// let value = no_value.unwrap();  // This will panic!
+```
+
+**Using if let**
+-----------------
+
+Another way to handle `Option`s is by using `if let`. 
+This allows you to handle the `Some` case without having to specify what to do with the `None` case:
+
+```rust
+let some_value = Some(5);
+
+if let Some(x) = some_value {
+    println!("The value is: {}", x);
+}
+```
+
+**Using expect**
+-----------------
+
+If you want to provide a custom error message when unwrapping an `Option`, you can use the `expect` method:
+
+```rust
+let some_value = Some(5);
+let value = some_value.expect("No value is present");  // value is now 5
+
+let no_value = None;
+// let value = no_value.expect("No value is present");  // This will panic with the custom message!
+```
+
+**Using map and and_then**
+---------------------------
+
+`Option` also has methods like `map` and `and_then` that allow you to transform the value inside the 
+`Option` without having to unwrap it:
+
+```rust
+let some_value = Some(5);
+let mapped_value = some_value.map(|x| x * 2);  // mapped_value is now Some(10)
+
+let no_value = None;
+let mapped_value = no_value.map(|x| x * 2);  // mapped_value is now None
+```
+
+```rust
+let some_value = Some(5);
+let and_then_value = 
+    some_value.and_then(|x| if x > 10 { Some(x * 2) } else { None });  // and_then_value is now None
+
+let some_value = Some(15);
+let and_then_value = 
+    some_value.and_then(|x| if x > 10 { Some(x * 2) } else { None });  // and_then_value is now Some(30)
+```
+
+**Real-World Example**
+----------------------
+
+Here's an example of using `Option` to handle a situation where a value might be present or absent:
+
+```rust
+fn get_user_name(user_id: i32) -> Option<String> {
+    // Simulate a database query
+    if user_id == 1 {
+        Some("John Doe".to_string())
+    } else {
+        None
+    }
+}
+
+fn main() {
+    let user_id = 1;
+    let user_name = get_user_name(user_id);
+
+    match user_name {
+        Some(name) => println!("Hello, {}!", name),
+        None => println!("User not found"),
+    }
+}
+```
+
+In ex, the `get_user_name` function returns an `Option` containing the user's name if the user is found, 
+or `None` if the user is not found. The `main` function then uses pattern matching to handle both cases.
+
+The `Option` type in Rust is indeed a part of the standard library. 
+However, it is not automatically brought into scope by default.
+
+In Rust, the standard library is divided into several modules, and each module needs to be 
+imported using the `use` keyword to bring its contents into scope.
+
+The `Option` type is defined in the `std` module, which is the root module of the standard library. 
+To use `Option`, you need to import it explicitly using the `use` keyword:
+
+```rust
+use std::option::Option;
+```
+
+However, this is not the most common way to import `Option`. 
+Instead, you can import it using the following syntax:
+
+```rust
+use std::option::Option::{Some, None};
+```
+
+This imports the `Option` enum and its variants `Some` and `None` directly into the current scope.
+
+Alternatively, you can also import the entire `std::option` module using the following syntax:
+
+```rust
+use std::option::*;
+```
+
+This imports all the contents of the `std::option` module, including the `Option` enum and its variants, 
+into the current scope.
+
+In practice, you rarely need to import `Option` explicitly, as it is often used in conjunction with other 
+standard library types and functions that import it implicitly. 
+
+For example, when working with `Result`, `Option` is often used as a return type, and the `Result` module 
+imports `Option` implicitly.
 
