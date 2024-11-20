@@ -1,6 +1,6 @@
 # Rust Enums:
 
-- Rust enums is a type that represents datat that is one of several possible variants. Each variant in the
+- Rust enums is a type that represents data that is one of several possible variants. Each variant in the
   'enum' can optionally have data associated with it.
 
 - Enums are way to define a set of named values. mainly useful when you have a fixed set of distinct values
