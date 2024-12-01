@@ -91,3 +91,38 @@ In summary:
 * To include the prelude, omit the `#![no_std]` attribute.
 * Use the `core` library to access types and traits that are similar to those in the `std` library, but
   without the overhead of the `std` library's dependencies.
+
+---
+**Programs Packed with Rust binary**
+---
+
+When a Rust program is compiled, several other programs are included in the binary:
+
+1.  **`std`**: 
+    The Rust standard library is included in the binary. 
+    However, the `std` library is designed to be highly modular, so only the parts of the library that 
+    are actually used by the program are included in the binary.
+
+2.  **`libc`**: 
+    The C standard library is included in the binary, as Rust uses it for certain operations such as file 
+    I/O and networking.
+
+3.  **`libm`**: 
+    The math library is included in the binary, as Rust uses it for certain mathematical operations.
+
+4.  **`libgcc`**: 
+    The GCC runtime library is included in the binary, as Rust uses it for certain operations such as 
+    exception handling.
+
+5.  **`libpthread`**: 
+    The POSIX threads library is included in the binary, as Rust uses it for certain operations such as 
+    threading.
+
+6.  **`libdl`**: 
+    The dynamic linker library is included in the binary, as Rust uses it for certain operations such as 
+    dynamic linking.
+
+7.  **`librt`**: The real-time library is included in the binary, as Rust uses it for certain operations 
+    such as timing and scheduling.
+
+
