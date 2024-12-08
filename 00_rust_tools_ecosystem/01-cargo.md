@@ -85,3 +85,50 @@ compiling, downloading the libs our code depends on and building libraries which
         yank                 Remove a pushed crate from the index
 
 ```
+
+---
+
+## rustc compiler takes only a single file argument for compilation:
+
+There is a design philosophy behind Rust's decision to only take one input file for compilation. 
+This philosophy is rooted in the way Rust approaches compilation and the goals of the language.
+
+In C and C++, the compiler can take multiple input files because the compilation process is designed to be 
+incremental. 
+Each file is compiled separately, and the resulting object files are linked together to create the final 
+executable. This approach allows for faster compilation times, as only the files that have changed need to 
+be recompiled.
+
+However, this approach also has some drawbacks. 
+For example, it can lead to issues with header files, where changes to a header file can cause multiple 
+source files to be recompiled unnecessarily. 
+Additionally, the incremental compilation approach can make it more difficult to optimize the code, as the 
+compiler only has visibility into a single file at a time.
+
+Rust, on the other hand, takes a more holistic approach to compilation. When you compile a Rust program, the
+compiler takes the entire program as input and compiles it as a single unit. 
+This approach allows the compiler to perform more aggressive optimizations, as it has visibility into the 
+entire program.
+
+There are several reasons why Rust's designers chose to take this approach:
+
+1. **Whole-program optimization**: 
+    By compiling the entire program at once, Rust's compiler can perform more aggressive optimizations, such
+    as dead code elimination, inlining, and constant folding.
+2. **Better error reporting**: 
+    When the compiler has visibility into the entire program, it can provide more accurate and helpful error
+    messages. For example, if a function is used incorrectly, the compiler can point to the exact location 
+    where the function is defined.
+3. **Simplified dependency management**: By compiling the entire program at once, Rust's compiler can 
+    automatically manage dependencies between files. This eliminates the need for manual dependency 
+    management, which can be error-prone and time-consuming.
+4. **Improved code analysis**: 
+    By analyzing the entire program at once, Rust's compiler can perform more advanced code analysis, such 
+    as detecting unused code, unreachable code, and other issues.
+
+To achieve this, Rust uses a concept called a "crate" (short for "container"), which is a single unit of 
+compilation that can contain multiple files. When you compile a Rust program, you specify the crate root 
+(usually `lib.rs` or `main.rs`), and the compiler compiles the entire crate as a single unit.
+
+While this approach may seem restrictive at first, it has several benefits that make it well-suited for 
+Rust's goals of safety, performance, and productivity.
