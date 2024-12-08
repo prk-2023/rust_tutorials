@@ -10,9 +10,15 @@
 use std::io;
 pub mod physics;
 
+// When modules are in other sub-directories, we use th #[path] to the module file directory
+// in our care the add.rs module file inside math folder. conatining my_add public function
+#[path = "math/add.rs"]
+pub mod add;
+
 // allow attribute  to supress warming messages
 #[allow(unused_variables)]
 fn main() {
+    println!("adding 3 and 4 we get : {}", add::my_add(3, 4));
     loop {
         // read input number from user
         let mut obj_mass = String::new();
