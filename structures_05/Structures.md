@@ -6,13 +6,18 @@
 A structure (or struct) is a way to group related data together. 
 Structures are similar to classes in other languages, but they do not support inheritance.
 
-- Like in C, CPP Rust supports custome structures.
+- Like in C, C++ Rust supports custom structures.
 
-- Like in CPP and unline in C, no `typedef` is needed to define a structure.
+- Like in C++ and unlike in C, no `typedef` is needed to define a structure.
 
-- Unlike in CPP structures in Rust do not support inheritance.
+- Unlike in C++ structures in Rust do not support inheritance.
 
-- Different types of structures are suppoted in Rust:
+- In Rust 'typedef' is not used, and you simply define a structure using the struct keyword. 
+- Rust has 'type' aliases, but they are not typically used for structures (unless you want to alias a type).
+
+  Example:   `type MyInt = i32;`  // "type" alias is how you use in rust, for structures "struct" is enough.
+
+- Different types of structures are supported in Rust:
 
     - Zero-size structure: `struct Foo`, maybe useful while implementing traits on some type, but they hold
       no data you want to store in its values.
@@ -43,7 +48,7 @@ it contains. Here's an example:
 -----------------------------
 
 To create a new instance of a structure, you use the `Person` keyword followed by the values for each field.
-You can do this in any order relative to the order of fields in the struct decleration:
+You can do this in any order relative to the order of fields in the struct declaration :
 Here's an example:
 
     ```rust
@@ -83,7 +88,7 @@ Declare the instance as mutable, allows to change its fields:
     };
     person1.age = 24;
     ```
-Note: Mutablity is applicable for entire structure. Individual structure elements can not be declared
+Note: Mutability is applicable for entire structure. Individual structure elements can not be declared
 mutable and immutable.
 
 5. Returning a structure from a function:
@@ -119,7 +124,7 @@ Methods can be classified into types:
 - Instance Methods: These methods take "self" as an argument and operate on instance of the structure.
 They are defined using "&self" or "&mut self" syntax.
 
-- Static Methods: These methods do not take "self" as an argument and opearte on the structures itself.
+- Static Methods: These methods do not take "self" as an argument and operate on the structures itself.
 They are using the "Self" syntax.
 
 - Associated functions: These functions are not methods but are associated with the structure. They are
