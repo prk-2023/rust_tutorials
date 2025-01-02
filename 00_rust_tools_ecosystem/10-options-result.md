@@ -10,6 +10,10 @@ Ref: https://doc.rust-lang.org/nightly/core/option/index.html
 The `Option` enum is used to represent a value that may or may not be present. It has two variants:
 
 * `Some(value)`: represents a value that is present.
+    Some(T) is a variant of the Option enum, which is used to represent a value that may or may not be 
+    present.
+    Some(T): represents the presence of a value of type T.
+
 * `None`: represents the absence of a value.
 
 pub enum Option<T> {
