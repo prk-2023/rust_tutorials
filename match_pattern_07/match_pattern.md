@@ -632,7 +632,61 @@ and guards.
   (e.g., `Click { x, y }` and `MouseMove(x, y)`).
 - We apply **guards** to check for specific conditions, such as whether the click coordinates are large.
 
+7. simple examples:
+
+    ```
+    // use _ in any case:
+    #![allow(unused_variables)]
+    fn main() {
+        let x = 1;
+        
+        match x {
+            1 => println!("one"),
+            2 => println!("two"),
+            3 => println!("three"),
+            _ => println!("anything"),
+        }
+    }
+
+    // multiple Patterns
+    let x = 1;
+    match x { 
+        1|2 => println!("one or two!"),
+        3   => println!("three"),
+        _   => println!("anything"),
+    }
+
+    // destructure: 
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    let origin = Point { x: 0, y: 0 };
+    match origin {
+        Point { x, y } => println!("({},{})", x, y),
+        // or we can use : to give other values to print
+        // Point { x: x1 , y: y1 } => println!("({},{})", x1, y1)
+    }
+
+    // ignoring bindings 
+    // use _ in pattern to disregard the type of value: ex match against a Result<T,E>:
+    match some_value {
+        Ok(value) => println!("got a value {}", value),
+        Err(_) => println!("an error occured"), // _ is used to disregard the specific error 
+                                                // and print general error
+    }
+
+    // bindings useful when you want to do complicated match of part of a data structures.
+    // we can use bind value to the names with @ :
+    let x = 1;
+    match x {
+        e @ 1 ... 5 => println!("got a range element {}",e),
+        _ => println@("anything"),
+    }
+    ```
 ---
+
 
 ### Conclusion
 
