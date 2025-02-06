@@ -64,4 +64,125 @@
     - CI/CD pipelines: install and manage specific version for CI/CD pipelines.
     - Testing and Debugging.
 
+---
 
+# Switch between different Rust installations:
+
+Here's a step-by-step guide to installing and switching between **stable**, **beta**, and **nightly** 
+Rust toolchains using `rustup` on Linux:
+
+---
+
+### **1. Install `rustup`**
+First make sure you install rust and environment is set to use.
+```bash
+source "$HOME/.cargo/env"
+```
+
+---
+
+### **2. Install Stable, Beta, and Nightly Toolchains**
+Install all three toolchains:
+```bash
+rustup install stable
+rustup install beta
+rustup install nightly
+```
+Verify installed toolchains:
+```bash
+rustup show
+```
+
+---
+
+### **3. Switch Between Toolchains**
+#### **Set a Global Default Toolchain**
+```bash
+# Set stable as the default
+rustup default stable
+
+# Set beta as the default
+rustup default beta
+
+# Set nightly as the default
+rustup default nightly
+```
+
+#### **Use a Toolchain Temporarily (Per Project)**
+Override the toolchain for a specific project directory:
+```bash
+cd ~/my_project
+rustup override set beta  # Uses beta only in this directory
+```
+
+#### **Use a Toolchain for a Single Command**
+Prefix any `cargo` or `rustc` command with `+toolchain`:
+```bash
+cargo +nightly build  # Build with nightly
+rustc +beta main.rs   # Compile with beta
+```
+
+---
+
+### **4. Update All Toolchains**
+Update all installed toolchains to their latest versions:
+```bash
+rustup update
+```
+
+---
+
+### **5. Check Active Toolchain**
+```bash
+rustup show active-toolchain  # Shows the current default
+rustc --version               # Check the active Rust version
+```
+
+---
+
+### **6. Remove a Toolchain**
+To uninstall a toolchain (e.g., nightly):
+```bash
+rustup uninstall nightly
+```
+
+---
+
+### **Key Commands Summary**
+| **Command**                     | **Description**                                     |
+|---------------------------------|-----------------------------------------------------|
+| `rustup install <toolchain>`    | Install a toolchain (stable/beta/nightly).          |
+| `rustup default <toolchain>`    | Set the global default toolchain.                   |
+| `rustup override set <toolchain>` | Set a per-project toolchain.                      |
+| `cargo +<toolchain> <command>`  | Run a command with a specific toolchain.            |
+| `rustup update`                 | Update all installed toolchains.                    |
+| `rustup show`                   | List installed toolchains and components.           |
+
+---
+
+### **Example Workflow**
+1. **Develop with Stable**:
+   ```bash
+   rustup default stable
+   cargo build
+   ```
+
+2. **Test Beta Features**:
+   ```bash
+   cargo +beta test
+   ```
+
+3. **Experiment with Nightly**:
+   ```bash
+   rustup override set nightly
+   cargo build --features unstable
+   ```
+
+---
+
+### **Notes**
+- **Nightly**: Required for experimental features (e.g., `#![feature(...)]` in code).
+- **Beta**: Updated every 6 weeks as a preview of the next stable release.
+- **Stable**: Recommended for production use.
+
+By using `rustup`, you can seamlessly switch between Rust versions while keeping all toolchains updated. 🦀
