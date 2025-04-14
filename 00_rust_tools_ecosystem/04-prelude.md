@@ -1,5 +1,8 @@
 # Rust prelude:
 
+ref: 
+~/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust/html/std/prelude/index.html
+
 The prelude is a set of modules that are automatically imported into every Rust program, making their
 contents available without the need for explicit imports using the `use` keyword.
 
