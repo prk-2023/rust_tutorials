@@ -357,3 +357,209 @@ int main(int argc, char **argv) {
 
 Allowing to control this behaviour at compilation time.
 -----------------------------------------------------------------
+# Intro to Clap :
+
+Ref : https://dev.to/moseeh_52/getting-started-with-clap-a-beginners-guide-to-rust-cli-apps-1n3f
+
+## Intro
+
+"clap": stands for command line argument parser.
+If a popular Rust crate that helps to easily define a parse command line arguments in a safe, efficient and
+expressive way.
+
+When we are building command line apps in Rust list ripgrep, cargo, or bat... `clap` is often the way to go
+solution for handling inputs like:
+
+```
+    myapp --file config.txt --verbose
+```
+Along with `clap` Rust's ecosystem supports other mature and high-quality crates like:
+- clap              : cli parser 
+- anyhow/thiserror  : error handling 
+- serde             : Data serialization ( JSON, TOML, YAML )
+- tokio /async-std  : Async runtime 
+- indicatif         : Progress bad and spinners 
+
+## What is `clap`?
+
+Command line Argument Parser its a popular Rust crate for building CLI apps. It carters:
+- Parsing arguments ( --file config.toml )
+- Validating input 
+- Showing help and usage messages 
+- Handling subcommands 
+- Support environment variables, default values and more...
+- It has clean and declarative API 
+- rich features like --help --version , subcommands and env support.
+- built in validation, error reporting, and enum support. 
+- Active and on par with modern ergonomics.
+
+We can define your CLI either by describing a structure ( derive-style )
+or by building it manually ( Builder-style ).
+
+Note: Apart from `clap` there are other ways to parse CLI arguments in Rust using
+1. std::env::args() : lowlevel access to command-line args.
+2. getopts: Old crate inspired by c-ctyle option parsing 
+3. structopt: predecessor to clap now merged into clap.
+
+Reload rust topics:
+
+### Traits: The Foundation 
+
+Traits are like interfaces in other languages. It defines behaviour that a type can implement.
+
+Example:
+```rust 
+traig Speak {
+    fn say_hello(&self);
+}
+
+struct Person;
+
+impl Speak for Person {
+    fn say_hello(&self) {
+        println!("hello!");
+    }
+}
+fn main() {
+    let person = Person;
+    person.say_hello(); // calls the trair method:
+}
+```
+
+in `clap` traits like  *`Parser`* and *`ValueEnum`* let your struct automatically become a CLI parser or
+enum handler. 
+
+#### *`Parser`* Trait: Derive your CLI:
+
+```rust 
+
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(name = "myapp")]
+
+struct Args {
+    #[arg(short, long)]
+    file: String,
+}
+
+fn main() {
+    let args = Args::parse(); // This comes from parser trait
+    println!("File:{}". args.file);
+}
+```
+
+The `Parser` trait gives:
+    - Args::parse() - Parse CLI args from the command line 
+    - Args::try_parse() - Parse and catch errors instead of exiting. 
+    - Args::parse_from(...) - Parse from a custom source ( like in tests )
+
+#[command(...)]: App Metadata 
+This attribute comes from the `Parser` trait and lets us define:
+    - name — App name
+    - version — App version
+    - about — Short description
+    - author — Developer name/email
+`clap` uses this above info to generate "--help" and "--version"
+
+#[arg(...)]: Fine-tune Your CLI
+Each filed in the struct represents a 'flag', 'argument' or 'option'
+
+```rust 
+struct Args {
+    #[arg(short, long, help = "Path to the config file", default_value = "config.toml")]
+    file: String,
+
+    #[arg(long, env = "RUN_MODE")]
+    mode: Option<String>,
+}
+```
+- short, long: adds -f and --file  ( -h or --help )
+- help: adds help text
+- default_value: gives a fallback
+- env: reads from an env var if missing
+
+#### ValueEnum: Enums with Argument Values
+With `ValueEnum`, you can let the user pick from fixed enum values like --mode fast or --mode slow.
+example:
+```rust 
+    enum Mode {
+        Fast,
+        Slow.
+    }
+
+    #[derive(Parser)]
+    struct Args {
+        #[arg(long)]
+        mode:   
+    }
+
+```
+
+==> Clap:
+    - Automatically convert strings to enum values 
+    - Show allowed values in the --help message 
+    - Reject anything with a friendly error.
+
+#### Common Derive Traits You Might Use:
+
+|Trait      |What it enables                        | Comes from |
+|-----------|---------------------------------------|------------|
+|Parser     |::parse() to turn CLI into a structure | clap crate |
+|ValueEnum  |Enum parsing from strings              | clap crate |
+|Debug      |println!("{?}",val) for debugging      | std lib    |
+|Clone      |.clone() support for struct/enum       | std lib    |
+
+These are added using #[derive(...)] and give your types functionality automatically.
+
+## Builder vs Derive derive-style
+
+Clap supports both:
+
+- Derive style (what we've been using)
+```rust 
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long)]
+    name: String,
+}
+```
+- Builder style (manual but flexible)
+```rust 
+use clap::{Command, Arg};
+
+let matches = Command::new("myapp")
+    .arg(Arg::new("name").short('n').long("name").required(true))
+    .get_matches();
+```
+
+Example: file-checker
+
+```rust 
+use clap::Parser;
+use clap::ValueEnum;
+
+#[derive(Parser)]
+#[command(name = "file-check", version = "0.1.0")]
+
+struct Cli {
+    #[arg(short, long)]
+    file: PathBuf,
+
+    #[arg(long, default_value = "fast")]
+    mode: Mode,
+}
+fn main() {
+    let args = Cli::parse();
+    println!("Mode: {:?}", args.mode);
+    
+    if args.file.exists() {
+        println!("Found");
+    } else {
+        println!("Found");
+
+    }
+}
+```
+
+`cargo run -- --file ./config.toml --mode slow`
