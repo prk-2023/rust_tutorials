@@ -1,0 +1,10 @@
+[package]
+name = "trace_pipe6"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+colored = "3.0.0"
+ctrlc = "3.4.7"
+#signal-hook = "0.3.18"
+clap = { version = "4.5.46", features = ["derive"] }
