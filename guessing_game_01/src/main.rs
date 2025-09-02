@@ -1,6 +1,7 @@
 //extern crate rand; // this is ommited since 2018, which told the rust compiler to link against
 //the "rand"
-use rand::Rng;
+//use rand::Rng;
+use rand;
 use std::cmp::Ordering;
 use std::io;
 
@@ -8,7 +9,8 @@ fn main() {
     loop {
         //generate a random number
         //let rand_num: u32 = rand::thread_rng().gen_range(0..=100);
-        let rand_num: u32 = rand::thread_rng().gen_range(1..101);
+        // let rand_num: u32 = rand::thread_rng().gen_range(1..101);
+        let rand_num: u32 = rand::random_range(1..101);
 
         //let rand_num: u32 = rand::thread_rng().gen_range(0..101);
 
