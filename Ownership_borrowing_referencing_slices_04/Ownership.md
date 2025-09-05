@@ -504,5 +504,141 @@ This article we’ll discuss three collections that are used very often in Rust 
 
 ]
 
+- `Slice` is a *core rules of Rust’s borrowing system*, and it’s essential for ensuring *memory safety 
+  without a garbage collector*.
 
+---
+
+### Rust Slices – Key Concepts
+
+- What is a Slice?
+
+* A *slice* is a view into a *contiguous sequence of elements* in a collection (like an array or vector).
+* It *borrows* data; it doesn't own it.
+* Allows safe, efficient access to **part** of a collection.
+
+### Syntax
+
+```rust
+let arr = [1, 2, 3, 4, 5];
+let slice = &arr[1..4];  // slice = &[2, 3, 4]
+```
+
+* `&arr[a..b]` creates a slice starting at index `a` and ending *before* index `b`.
+* `&arr[..]` is a slice of the entire array.
+* Slices use **range syntax**:
+
+  * `a..b` → from `a` to `b - 1`
+  * `..b` → from `0` to `b - 1`
+  * `a..` → from `a` to the end
+
+---
+
+### Properties of Slices
+
+####  Type Signature
+
+```rust
+let slice: &[i32] = &arr[1..4];
+```
+
+* The type is `&[T]`, where `T` is the element type (here, `i32`).
+* It’s a reference to a portion of a collection.
+
+####  Common Traits Implemented
+
+* Slices implement traits like:
+
+  * `Copy` (if the elements are `Copy`)
+  * `Debug`
+  * `PartialEq`
+  * `IntoIterator`
+
+---
+
+### Borrowing Rules
+
+* Slices **borrow** the data → subject to Rust's borrowing rules.
+
+```rust
+let mut data = [1, 2, 3, 4];
+let part = &data[1..3];   // Immutable borrow
+data[1] = 10;             // ❌ Error: cannot mutate while `part` exists
+```
+---
+
+### Slicing Vectors
+
+```rust
+let vec = vec![10, 20, 30, 40];
+let slice = &vec[1..3];  // slice = &[20, 30]
+```
+---
+
+### Using Slices in Functions
+
+Slices are great for **generic APIs**:
+
+```rust
+fn print_slice(slice: &[i32]) {
+    for elem in slice {
+        println!("{}", elem);
+    }
+}
+```
+---
+
+###  Out-of-Bounds
+
+* Slicing with invalid indices causes **runtime panic**.
+
+```rust
+let arr = [1, 2, 3];
+let slice = &arr[1..5]; // ❌ Panics! Index out of bounds
+```
+
+---
+
+### Getting Length
+
+```rust
+let arr = [10, 20, 30, 40];
+let s = &arr[1..3];
+println!("Length: {}", s.len());  // Output: 2
+```
+
+---
+
+### Iterating Over a Slice
+
+```rust
+for val in &arr[1..4] {
+    println!("{}", val);
+}
+```
+
+---
+
+### Mutable Slices
+
+You can create **mutable slices** to modify parts of a collection:
+
+```rust
+let mut data = [1, 2, 3, 4];
+let slice = &mut data[1..3];
+slice[0] = 10;
+```
+
+---
+
+### Summary Table
+
+| Feature     | Description                                |
+| ----------- | ------------------------------------------ |
+| Ownership   | Borrows data; doesn't own it               |
+| Syntax      | `&arr[a..b]` or `&mut arr[a..b]`           |
+| Length      | Use `.len()`                               |
+| Type        | `&[T]` or `&mut [T]`                       |
+| Safe Access | Checked at runtime to avoid panics         |
+| Uses        | APIs, partial data access, iteration, etc. |
 
