@@ -1,9 +1,9 @@
 # Error Handling: 
 
-
+---
 - Ref:  https://www.youtube.com/watch?v=j-VQCYP7wyw
 
-**Introduction**
+## Introduction
 ---
 
 Rust prioritizes safety and reliability. Error handling is one of the key features that enables this is its 
@@ -13,7 +13,7 @@ Topics covered Rust error handling, exploring the concepts, mechanisms, and best
 effective.
 
 
-- Why Error Handling Matters
+### Why Error Handling Matters
     
     1. Error handling is crucial in any prog lang, it allows developers to anticipate and respond to
        unexpected events events or conditions that may arise during program execution.
@@ -21,7 +21,7 @@ effective.
     2. Rust, error handling is particularly important due to its focus on memory safety and preventing
        common errors like null pointer dereferences or buffer overflows.
 
-- **Error Types in Rust**
+### Error Types in Rust
 ---
 
 Rust has two primary types of errors:
@@ -60,6 +60,20 @@ Rust has two primary types of errors:
         }
     }
     ```
+
+- panic!() : panic! is a macro that signals an unrecoverable error in a program. 
+    When panic! is called, the program's execution stops, and it typically unwinds the stack, running 
+    destructors for any local variables in scope. 
+    This mechanism is used when a program enters a state that it cannot handle or recover from, and 
+    continuing execution would lead to undefined behavior or logical inconsistencies.
+
+    Depending on the configuration, panic! might unwind the stack and run destructors, or it might
+    immediately abort the process.
+
+    panic! can be explicitly called by developers using the panic! macro. 
+    It is also implicitly called by other functions and macros, such as unwrap() and expect() on Option or 
+    Result types when they encounter a None or Err value, respectively.
+
 - **Error Propagation**
 ---
 
@@ -85,7 +99,66 @@ Rust has two primary types of errors:
     The `?` operator is a shorthand for error propagation. 
     It's used to return early from a func with an error if the expression it's used with returns an error.
 
-    example of using the `?` operator: ( example same as above )
+    The ? operator is generally used with `Result` and `Option` types. 
+    It provides a concise way to handle potential errors or `None` values by either extracting the success 
+    value or returning early with the `error`/`None`.
+
+    Early Return on Error:
+        If the expression on which ? is applied evaluates to an Err variant (for Result) or None variant 
+        (for Option), the ? operator will immediately return that Err or None from the current function. 
+        This does affect the program logic flow by preventing subsequent code within that function from 
+        executing.
+
+    Unwrapping on Success:
+        If the expression evaluates to an Ok variant (for Result) or Some variant (for Option), 
+        the ? operator unwraps the value inside, and the program continues execution as normal.
+
+
+    Example: comparing with and without the error ? operation:
+
+    ```rust  
+    // with out the ? error opretaion to read and parse a file contents 
+    // Handling error manually requires a verbose match statement to check for an error after each step.
+
+    use std::fs::File;
+    use std::io::{self, Read};
+    
+    fn read_and_process() -> Result<i32, io::Error> {
+        let mut file = match File::open("data.txt") {
+            Ok(f) => f,
+            Err(e) => return Err(e),
+        };
+
+        let mut contents = String::new();
+        match file.read_to_string(&mut contents) {
+            Ok(_) => {},
+            Err(e) => return Err(e),
+        };
+
+        let number: i32 = match contents.trim().parse() {
+            Ok(n) => n,
+            Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid number format")),
+        };
+        Ok(number * 2)
+    }
+    ```
+
+    With ? error operator the above code can be written as :
+
+    ```rust 
+    use std::fs;
+    use std::io;
+    
+    fn read_and_process() -> Result<i32, Box<dyn std::error::Error>> {
+        let contents = fs::read_to_string("data.txt")?; // <- Early return on File::open or read_to_string error
+        let number = contents.trim().parse::<i32>()?; // <-- Early return on parse error
+
+        Ok(number * 2)
+    }
+
+    ```
+
+    Example2: of using the `?` operator: ( example same as above )
 
     ```rust 
     fn read_file(path: &str) -> Result<String, std::io::Error> {
@@ -97,6 +170,7 @@ Rust has two primary types of errors:
         Ok(())
     }
     ```
+
 - **Custom Error Types**
 ---
 
@@ -195,7 +269,7 @@ Rust has two primary types of errors:
         std::fs::read_to_string(path)
     }
     ```
-- **Best Practices**
+## Best Practices
 ---
 
 1. **Use `Result` instead of `Option`**: 
@@ -218,7 +292,7 @@ and reliable code.
 
 ---
 
-Additional material and examples:
+## Additional material and examples:
 
 **Why Error Handling Matters**
 
@@ -329,3 +403,62 @@ Custom error types can be used to represent domain-specific errors that aren't c
         }
     }
     ```
+
+# Additional 
+Ref : https://dev.to/nathan20/how-to-handle-errors-in-rust-a-comprehensive-guide-1cco
+
+Purpose: Help identify, debug, and resolve errors that occur during the execution of a program.
+
+Helps to ensure smooth functioning of the program by preventing errors from occuring and allowing program to
+continue running in an optimal state.
+
+Error handling also allows users to be informed of any problems that may arise and take corrective action to
+prevent the errors from happening again in the future.
+
+## Result type:
+    Its a built-in enum in Rust Standard library:
+    It has 2 states or variants Ok(T) and Err(E)
+
+    enum Result<T,E> {
+        Ok(T),
+        Err(E),
+    }
+
+    This type is used for any function that can potentially encounter error situations.
+    Ok value is return in case of success or Err in case of error.
+
+    ex:
+    fn picture_found() -> Result<i64, bool> {
+        if i {  // if true 
+            Ok(400) // return Ok(400)
+        } else {
+            Err(false) // return Err (false )
+        }
+    }
+## Summary:
+
+What is error handling?
+
+Sometime while using functions that can fail can encounter errors and in Rust, error handling is the process
+of managing failures in a safe and predictable way.
+
+Rust uses two main types for this:
+1. `Result<T,E>` for recoverable errors ( ex: file not found or connection failure )
+2. `panic!()` macro for unrecoverable error (ex:  out-of-bound access)
+
+`Result<T,E>` allows for gracefull handling of errors using pattern matching, ? error operator or methods
+like `.unwrap_or()` and `.expect()`
+
+
+`panic!` when called, the program's execution stops, and it typically unwinds the stack, running destructors
+for any local variables in scope. 
+
+This mechanism is used when a program enters a state that it cannot handle or recover from, and continuing 
+execution would lead to undefined behavior or logical inconsistencies.
+
+Depending on the configuration, panic! might unwind the stack and run destructors, or it might immediately 
+abort the process.
+
+panic! can be explicitly called by developers using the panic! macro. 
+It is also implicitly called by other functions and macros, such as unwrap() and expect() on Option or 
+Result types when they encounter a None or Err value, respectively.
