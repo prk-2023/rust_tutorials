@@ -49,38 +49,61 @@ fn main() {
     // Read from file or stdin
     match args.file {
         Some(path) => {
-            let mut file = match File::open(&path) {
-                Ok(f) => f,
-                Err(e) => {
-                    eprintln!("{} {}", "Error opening file:".red(), e);
-                    std::process::exit(1);
-                }
-            };
+            // let mut file = match File::open(&path) {
+            //     Ok(f) => f,
+            //     Err(e) => {
+            //         eprintln!("{} {}", "Error opening file:".red(), e);
+            //         std::process::exit(1);
+            //     }
+            // };
+            // the below log is same opening file and exiting if it fails.. with new style
+            // where we avoided using boilerplate match statement and use of closures to make the
+            // code more declarative and consistent with other combinators like map ...
 
-            if args.offset > 0 {
-                if let Err(e) = file.seek(SeekFrom::Start(args.offset as u64)) {
-                    eprintln!("{} {}", "Error seeking in file:".red(), e);
-                    std::process::exit(1);
-                }
-            } else if args.offset < 0 {
-                // Seek backwards from end
-                let size = match file.seek(SeekFrom::End(0)) {
-                    Ok(sz) => sz,
-                    Err(e) => {
-                        eprintln!("{} {}", "Error seeking in file:".red(), e);
-                        std::process::exit(1);
-                    }
-                };
+            let mut file = File::open(&path).unwrap_or_else(|e| {
+                let tmpstr = e.to_string();
+                eprintln!("{} {}", "Error Opening File: ".red(), tmpstr.green());
+                std::process::exit(1);
+            });
 
-                let target = if (-args.offset) as u64 > size {
-                    0
+            // if args.offset > 0 {
+            //     if let Err(e) = file.seek(SeekFrom::Start(args.offset as u64)) {
+            //         eprintln!("{} {}", "Error seeking in file:".red(), e);
+            //         std::process::exit(1);
+            //     }
+            // } else if args.offset < 0 {
+            //     // Seek backwards from end
+            //     let size = match file.seek(SeekFrom::End(0)) {
+            //         Ok(sz) => sz,
+            //         Err(e) => {
+            //             eprintln!("{} {}", "Error seeking in file:".red(), e);
+            //             std::process::exit(1);
+            //         }
+            //     };
+            //
+            //     let target = if (-args.offset) as u64 > size {
+            //         0
+            //     } else {
+            //         size - (-args.offset) as u64
+            //     };
+            //
+            //     if let Err(e) = file.seek(SeekFrom::Start(target)) {
+            //         eprintln!("{} {}", "Error seeking in file:".red(), e);
+            //         std::process::exit(1);
+            //     }
+            // }
+            if args.offset != 0 {
+                if args.offset > 0 {
+                    seek_or_exit(&mut file, SeekFrom::Start(args.offset as u64), "from start");
                 } else {
-                    size - (-args.offset) as u64
-                };
+                    let size = seek_or_exit(&mut file, SeekFrom::End(0), "to get file size");
 
-                if let Err(e) = file.seek(SeekFrom::Start(target)) {
-                    eprintln!("{} {}", "Error seeking in file:".red(), e);
-                    std::process::exit(1);
+                    let target = if (-args.offset) as u64 > size {
+                        0
+                    } else {
+                        size - (-args.offset) as u64
+                    };
+                    seek_or_exit(&mut file, SeekFrom::Start(target), "back from end");
                 }
             }
 
@@ -97,6 +120,17 @@ fn main() {
             dump_file(io::stdin(), args.number, args.line, 0);
         }
     }
+}
+// Dry code only one place to handle the errors.
+fn seek_or_exit(file: &mut std::fs::File, pos: SeekFrom, desc: &str) -> u64 {
+    file.seek(pos).unwrap_or_else(|e| {
+        eprintln!(
+            "{} {}",
+            format!("Error seeking in file ({})", desc).red(),
+            e
+        );
+        std::process::exit(1);
+    })
 }
 
 fn dump_file<T: Read>(
