@@ -88,10 +88,24 @@ Declare the instance as mutable, allows to change its fields:
     };
     person1.age = 24;
     ```
-Note: Mutability is applicable for entire structure. Individual structure elements can not be declared
-mutable and immutable.
+Note: *** Mutability is applicable for entire structure. Individual structure elements can not be declared
+mutable and immutable.*** 
+
+If you are passing a struct to a function and what to mutate it, use *mutable reference* 
+    ```rust 
+    fn grow_older(p: &mut Person) {
+        p.age += 1;
+    }
+    fn main() { 
+        let mut person = Person { name: String::from("user1"), age: 25, };
+
+        grow_older(&mut person); // passing mutable reference 
+        println!("Age after birthday: {}",person.age);
+    }
+    ```
 
 5. Returning a structure from a function:
+----------------------
 
     You can also construct a struct instance as the last expression in a function to implicitly return it:
 
@@ -124,11 +138,52 @@ Methods can be classified into types:
 - Instance Methods: These methods take "self" as an argument and operate on instance of the structure.
 They are defined using "&self" or "&mut self" syntax.
 
-- Static Methods: These methods do not take "self" as an argument and operate on the structures itself.
-They are using the "Self" syntax.
+```rust 
+    struct Circle {
+        radius: f64,
+    }
 
+    impl Circle {
+        // Immutable method (read-only)
+        fn area(&self) -> f64 {
+            std::f64::consts::PI * self.radius * self.radius
+        }
+
+        // Mutable method (can change the instance)
+        fn grow(&mut self, increment: f64) {
+            self.radius += increment;
+        }
+
+        // Consuming method (takes ownership of the instance)
+        fn destroy(self) {
+            println!("Circle with radius {} is destroyed", self.radius);
+        }
+    }
+```
 - Associated functions: These functions are not methods but are associated with the structure. They are
   defined using the "fn" keywords without "self".
+  These do not take `self` as a parameter and are called on the `type` not on an instance.
+
+  ```rust 
+    impl Circle {
+        fn new(radius: f64) -> Self {
+            Self { radius }
+        }
+    }
+    ....
+    //called as below:
+    let c = Circle::new(3.0);
+  ```
+
+  Associated functions are often used to define `constructors` or `factory methods`.
+
+- Static Methods: These methods do not take "self" as an argument and operate on the structures itself.
+They are using the "Self" syntax. 
+They are same as associated functions they do not take `self` and operate on inputs.
+
+These are often used for:
+    - Utility functions 
+    - Default  constructors ( Self::default())
 
 7. **Structure Traits**
 ---------------------
@@ -172,6 +227,12 @@ Here's an example:
 ---------------------
 
 Rust provides a way to automatically implement certain traits for a structure using `#[derive]` attribute. 
+It automatically generates code to implement traits like:
+    `Debug`
+    `Copy`
+    `PartialEq`
+without having to write them manually.
+
 Here's an example:
 
     ```rust
@@ -189,6 +250,35 @@ Here's an example:
         println!("{:?}", person); // prints "Person { name: \"John\", age: 30 }"
     }
     ```
+
+    This automatically implements:
+    - `Debug` : this allows to use println!("{:?}", point);
+    - `Clone` : this allows to clone ex: `point.clone()`
+    - `PartialEq` : so you can compare with `==` 
+
+Note: with out #[derive] you'd have to write this manually as below:
+
+    ```rust 
+    impl std::fmt::Debug for Point {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "Point {{ x: {}, y: {} }}", self.x, self.y)
+        }
+    }
+
+    ```
+Commonly derived traits:
+
+| Trait        | Purpose                                                  |
+| ------------ | -------------------------------------------------------- |
+| `Debug`      | Enables formatting with `{:?}` for debugging             |
+| `Clone`      | Creates deep copies using `.clone()`                     |
+| `Copy`       | Makes the type copyable (for simple, small data)         |
+| `PartialEq`  | Enables `==` and `!=` comparisons                        |
+| `Eq`         | Marks full equality (must also derive `PartialEq`)       |
+| `PartialOrd` | Enables `<`, `>`, `<=`, `>=` comparisons (partial order) |
+| `Ord`        | Full ordering (must also derive `PartialOrd`, `Eq`)      |
+| `Default`    | Provides a `default()` constructor                       |
+| `Hash`       | Enables use in hash maps/sets (`HashMap`, `HashSet`)     |
 
 11. **Structure Pattern Matching**
 ------------------------------
@@ -210,6 +300,7 @@ Rust provides a way to pattern match on structures using the `match` keyword. He
     ```
 
 12. Structs and Ownership:
+--------------------------
 
     Struct fields often own their data like the String type, which owns its contents.
     If we need to include references in your struct, you must use lifetimes to ensure that the data
