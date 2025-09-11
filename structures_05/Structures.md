@@ -365,7 +365,85 @@ Here are some best practices to keep in mind when working with structures in Rus
         
     ```
 
+15. print structure for debugging:
 
+We can use two ways to print a structure for debugging using the common macros:
+1. `println!()` :
+    `println!()` with `{:?}`  Debug formatting 
+    To use this your `struct` must implement `Debug` trait.
+    You can derive this trait with with `#[derive(Debug)]`
+
+    ```rust 
+        #[derive(Debug)]
+        struct Point {
+            x: i32,
+            y: i32,
+        }
+
+        fn main() {
+            let p = Point { x: 10, y: 20 };
+            println!("Point is: {:?}", p);
+        }
+    ```
+Note: `{:?}` tells `println!` to use the `Debug` formatting.
+
+2. `dbg!()` : Quick and Easy Debugging:
+
+    `dbg!()` prints to stderr and also returns the ownership of the value, this makes it handy for quick inspection.
+
+    example:
+    ```rust 
+        #[derive(Debug)]
+        struct Point {
+            x: i32,
+            y: i32,
+        }
+
+        fn main() {
+            let p = Point { x: 5, y: 15 };
+            dbg!(p);
+        }
+    ```
+Note: `dbg!()` automatically uses Debug formatting and includes the file name and line number for context.
+
+* *`println!()`* takes a *reference* to the value you want to print. It just prints it out and moves on; 
+  it doesn't affect ownership.
+
+* *`dbg!()`* takes *ownership* of the value, prints it to *stderr* with extra info (like file and line num),
+  *then returns the value back* so you can keep using it.
+
+---
+
+* Quick demo to clarify ownership:
+
+```rust
+    #[derive(Debug)]
+    struct Point { x: i32, y: i32 }
+
+    fn main() {
+        let p = Point { x: 1, y: 2 };
+
+        // println! takes a reference (&p), no ownership move
+        println!("{:?}", &p);
+
+        // dbg! takes ownership of p but returns it,
+        // so we can still use p afterward by assigning it back
+        let p = dbg!(p);
+
+        println!("Still usable: {:?}", p);
+    }
+```
+
+Note: 
+    - If `dbg!` didn’t return the value, `p` would be moved and unusable afterward.
+    - `dbg!()` is super handy as it returns the value it takes ownership of so you can insert it anywhere in 
+       your code to inspect, without breaking ownership of needing extra variable.
+    - Its handy for debugging complex expressions inline, because you can print the value and still keep 
+      using it afterwards.
+
+---
+
+Want me to explain why `dbg!` returns the value? Or how this helps in debugging?
 # Additional Material: 
 
 ---

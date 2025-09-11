@@ -19,6 +19,7 @@ struct Color(u8, u8, u8);
 
 //---
 #[allow(dead_code)]
+#[derive(Debug)]
 struct User {
     active: bool,
     username: String,
@@ -28,6 +29,7 @@ struct User {
 
 //---
 // Define a Rectangle structure
+#[derive(Debug)]
 struct Rectangle {
     width: u32,
     height: u32,
