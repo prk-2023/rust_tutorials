@@ -1,0 +1,12 @@
+[package]
+name = "tracepoints-list"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+#Command line argument parser
+clap = { version = "4.5.47", features = ["derive"] }
+#fancy colored output [optional]
+colored = "3.0.0"
+# Signal
+#ctrlc = "3.5.0"
