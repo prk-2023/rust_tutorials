@@ -73,12 +73,13 @@ fn list_events(subsystem: &str) -> io::Result<()> {
     // The `if/else` expression returns a String value
     let path = if subsystem.is_empty() {
         format!("{}/events", TRACEFS_BASE)
+    } else if subsystem == "subsystems" {
+        format!("{}/events/{}", TRACEFS_BASE, subsystem)
     } else {
         format!("{}/events/{}", TRACEFS_BASE, subsystem)
     };
 
     // `path` is guaranteed to be a String, which implements AsRef<Path>
-    let entries = fs::read_dir(&path)?;
     println!(
         "Available events in {}:",
         if subsystem.is_empty() {
