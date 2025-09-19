@@ -19,7 +19,7 @@ struct Args {
     tracepoints: Vec<String>,
 
     /// List available events in a subsystem and exit
-    #[arg(long)]
+    #[arg(long, num_args(0..=1), default_missing_value = "all")]
     list: Option<String>,
 
     /// Filter by PID (only show events from this PID)
@@ -33,23 +33,61 @@ struct Args {
 
 const TRACEFS_BASE: &str = "/sys/kernel/debug/tracing";
 
-fn list_events(subsystem: &str) -> io::Result<()> {
-    let path = format!("{TRACEFS_BASE}/events/{subsystem}");
-    let entries = fs::read_dir(&path)?;
+// fn list_events(subsystem: &str) -> io::Result<()> {
+//     let path = format!("{TRACEFS_BASE}/events/{subsystem}");
+//     let entries = fs::read_dir(&path)?;
+//
+//     println!("Available events in subsystem '{}':", subsystem);
+//     for entry in entries {
+//         let entry = entry?;
+//         if entry.file_type()?.is_dir() {
+//             if let Some(name) = entry.file_name().to_str() {
+//                 println!("  {}", name);
+//             }
+//         }
+//     }
+//
+//     Ok(())
+// }
 
-    println!("Available events in subsystem '{}':", subsystem);
+fn list_events(subsystem: &str) -> io::Result<()> {
+    // The `if/else` expression returns a String value
+    let path = if subsystem.is_empty() {
+        format!("{}/events", TRACEFS_BASE)
+    } else if subsystem == "all" {
+        format!("{}/events", TRACEFS_BASE)
+    } else {
+        format!("{}/events/{}", TRACEFS_BASE, subsystem)
+    };
+
+    // `path` is guaranteed to be a String, which implements AsRef<Path>
+    if subsystem == "all" {
+        println!(
+            "{}",
+            "System supported subsystems for tracing: (select the subsystem of interest)".yellow()
+        );
+    } else {
+        println!(
+            "{} {} \n",
+            "Listed tracing events for subsystem:".yellow().underline(),
+            subsystem.bright_white().bold().underline()
+        );
+    }
+    let entries = fs::read_dir(&path)?;
     for entry in entries {
         let entry = entry?;
         if entry.file_type()?.is_dir() {
             if let Some(name) = entry.file_name().to_str() {
-                println!("  {}", name);
+                if subsystem == "all" {
+                    println!("  {}", name.green().bold());
+                } else {
+                    println!("  {}", name.bright_cyan().bold().italic());
+                }
             }
         }
     }
-
     Ok(())
 }
-
 fn enable_tracepoint(subsystem: &str, event: &str) -> io::Result<()> {
     let path = format!("{TRACEFS_BASE}/events/{subsystem}/{event}/enable");
     fs::write(path, "1")?;
@@ -90,6 +128,11 @@ fn parse_tracepoints(raw: &[String]) -> Vec<(String, String)> {
 }
 
 fn main() -> io::Result<()> {
+    println!(
+        "{}{}",
+        "NOTE: Requires ".white().bright_white(),
+        "!!!sudo!!!".red().bright_red().blink()
+    );
     let args = Args::parse();
 
     // --list mode
@@ -122,7 +165,8 @@ fn main() -> io::Result<()> {
     }
 
     // Open output file if requested
-    let mut output_file = if let Some(path) = &args.out {
+    //let mut output_file = if let Some(path) = &args.out {
+    let output_file = if let Some(path) = &args.out {
         let file = OpenOptions::new().create(true).append(true).open(path)?;
         println!("{} {:?}", "Logging trace output to:".blue(), path);
         Some(file)
@@ -154,37 +198,73 @@ fn main() -> io::Result<()> {
     })
     .expect("Error setting Ctrl-C handler");
 
-    // Read from trace_pipe
-    let trace_pipe = File::open(format!("{TRACEFS_BASE}/trace_pipe"))?;
-    let mut reader = BufReader::new(trace_pipe);
+    // // Read from trace_pipe
+    // let trace_pipe = File::open(format!("{TRACEFS_BASE}/trace_pipe"))?;
+    // let mut reader = BufReader::new(trace_pipe);
+    //
+    // println!("{}", "Listening to trace_pipe...".blue());
+    //
+    // loop {
+    //     if !running.load(Ordering::SeqCst) {
+    //         break;
+    //     }
+    //
+    //     let mut line = String::new();
+    //     //FixMe: Readline is blocking call
+    //     match reader.read_line(&mut line) {
+    //         Ok(0) => break,
+    //         Ok(_) => {
+    //             print!("{}", line.cyan());
+    //
+    //             if let Some(file) = output_file.as_mut() {
+    //                 let _ = file.write_all(line.as_bytes());
+    //             }
+    //         }
+    //         Err(e) => {
+    //             if e.kind() == io::ErrorKind::Interrupted {
+    //                 continue;
+    //             } else {
+    //                 return Err(e);
+    //             }
+    //         }
+    //     }
+    // }
+    let reader_running = running.clone();
+    let handle = std::thread::spawn(move || {
+        let trace_pipe =
+            File::open(format!("{TRACEFS_BASE}/trace_pipe")).expect("Failed to open trace_pipe");
+        let mut reader = BufReader::new(trace_pipe);
+        println!("{}", "Listening to trace_pipe..".blue());
 
-    println!("{}", "Listening to trace_pipe...".blue());
-
-    loop {
-        if !running.load(Ordering::SeqCst) {
-            break;
-        }
-
-        let mut line = String::new();
-        match reader.read_line(&mut line) {
-            Ok(0) => break,
-            Ok(_) => {
-                print!("{}", line.cyan());
-
-                if let Some(file) = output_file.as_mut() {
-                    let _ = file.write_all(line.as_bytes());
+        while reader_running.load(Ordering::SeqCst) {
+            let mut line = String::new();
+            match reader.read_line(&mut line) {
+                Ok(0) => break,
+                Ok(_) => {
+                    println!("{}", line.cyan());
+                    if let Some(mut file) = output_file.as_ref() {
+                        let _ = file.write_all(line.as_bytes());
+                    }
+                }
+                Err(e) => {
+                    if e.kind() == io::ErrorKind::Interrupted {
+                        continue;
+                    } else {
+                        eprintln!("Enter reading trace_pipe {:?}", e);
+                        break;
+                    }
                 }
             }
-            Err(e) => {
-                if e.kind() == io::ErrorKind::Interrupted {
-                    continue;
-                } else {
-                    return Err(e);
-                }
-            }
         }
+        println!("{}", "Stopped reading trace_pipe.".yellow());
+    });
+
+    // Wait for Ctrl+C
+    while running.load(Ordering::SeqCst) {
+        std::thread::sleep(std::time::Duration::from_millis(200));
     }
 
+    let _ = handle.join();
     println!("{}", "Program terminated gracefully.".green());
 
     Ok(())
