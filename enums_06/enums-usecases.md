@@ -720,3 +720,122 @@ Example:
     ```
 Each enum has its own specific use case and can be used to make your code more 
 expressive and efficient.
+
+
+
+---
+
+Here’s a short Rust example with comments explaining parametric polymorphism via generics:
+
+```rust
+// A generic function that returns whatever it receives
+fn identity<T>(value: T) -> T {
+    value  // Just returns the input value of any type T
+}
+
+fn main() {
+    let int_val = identity(5);        // T inferred as i32
+    let str_val = identity("hello");  // T inferred as &str
+
+    println!("int_val = {}, str_val = {}", int_val, str_val);
+}
+```
+
+**Explanation:**
+
+* `<T>` declares a generic type parameter `T`.
+* `identity` works for **any type** `T` — that’s parametric polymorphism.
+* The function simply returns the input value without caring about its type.
+* Rust infers the specific type when you call it (`i32` for `5`, `&str` for `"hello"`).
+
+Would you like a quick example with structs too?
+
+
+Here's a **short generic struct example** in Rust with comments:
+
+```rust
+// A generic struct that holds a pair of values of any type
+struct Pair<T> {
+    first: T,
+    second: T,
+}
+
+impl<T> Pair<T> {
+    // A method that returns a reference to the first value
+    fn first(&self) -> &T {
+        &self.first
+    }
+}
+
+fn main() {
+    let int_pair = Pair { first: 1, second: 2 };           // T = i32
+    let str_pair = Pair { first: "hi", second: "there" };  // T = &str
+
+    println!("int_pair.first = {}", int_pair.first());
+    println!("str_pair.first = {}", str_pair.first());
+}
+```
+
+### Key Points:
+
+* `Pair<T>` is a **generic struct** that works with any single type `T`.
+* It’s **parametrically polymorphic** because the behavior doesn't depend on what `T` is.
+* We define methods with `impl<T>` to keep it generic.
+
+Let me know if you want a version where each field has a different type (i.e., `Pair<T, U>`)!
+---------
+
+
+Generics in Rust are **perfect** for implementing data structures like linked lists, where the type of the 
+data stored in each node should be flexible.
+
+Here’s a **minimal and clear example** of a generic singly linked list using `Option` and `Box`, with 
+comments to explain:
+
+```rust
+// Define a generic linked list node
+enum LinkedList<T> {
+    Empty,
+    Node(T, Box<LinkedList<T>>),
+}
+
+fn main() {
+    // Create a list: 1 -> 2 -> 3 -> Empty
+    let list = LinkedList::Node(
+        1,
+        Box::new(LinkedList::Node(
+            2,
+            Box::new(LinkedList::Node(3, Box::new(LinkedList::Empty))),
+        )),
+    );
+
+    // At this point, `list` is a generic linked list holding i32 values
+}
+```
+
+### Explanation:
+
+* `LinkedList<T>` is generic over `T`, so it can hold any type.
+* `Node(T, Box<LinkedList<T>>)` means each node stores:
+
+  * A value of type `T`.
+  * A pointer (`Box`) to the next node in the list.
+* `Empty` represents the end of the list.
+* `Box` is used because Rust needs a **known size at compile time**, and recursive types like this require 
+   heap allocation.
+
+### Example with `&str` instead of `i32`:
+
+```rust
+let str_list = LinkedList::Node(
+    "a",
+    Box::new(LinkedList::Node(
+        "b",
+        Box::new(LinkedList::Node("c", Box::new(LinkedList::Empty))),
+    )),
+);
+```
+
+Same structure, different type — that’s parametric polymorphism in action.
+
+Would you like to see how to add methods like `push` or `print` to the list?
