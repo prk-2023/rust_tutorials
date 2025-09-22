@@ -13,23 +13,81 @@ To understand enums, it's essential to know about the different types in Rust:
 
 *  **Atoms**: 
     basic building blocks of types, such as `i32`, `u64`, `f32`, etc. 
-    Atoms are types whose values evaluate to themselves.
+    Atomic types are not composed of any other types and represent single , indivisible valuel
 
 *   **Sum Types**: 
     They allow you to define a value that can be one of several possible states. 
     The number of possible states a variable can have is the sum of all options.
+    enums: In rust enums are sum type, which means it can represent a value that can be one of several variants, 
+    each potentially hold different data.
+    The sum refers to the number of possible values across all variants. ex
+
+    ```rust 
+        enum Option<T> {
+            Some(T),
+            None,
+        }
+    ```
+    So if `T` is `bool` then `Option<T>` has 3 possible states:
+    `Some(true)` , `Some(false)` and `None`  ==> 3 possible states.
 
 *   **Product Types**: 
-    Structs are an example of product types. 
+    `Struct` are an example of product types. 
     They define a type that is a combination of multiple values. 
     Number of possible states a variable can have is the product of all combinations of data in the struct.
     
 *   **Generic Types**: 
     These are types that are defined in terms of some other type (or types) `T`. 
     They allow for more flexibility and reusability in your code.
+    - Rust supports `parametric polymorphism`  via `generics`
+    i.e : *`Writing code that works with any any data type.`*
+    
+    Instead of writing a function or data structure for each specific type (like i32, f64, or String), you 
+    write it once and make it generic over types.
+ 
+    In Rust, `generics` let you define functions, structs, enums, or traits that can operate on different 
+    types without rewriting the code multiple times.
+
+    These allows us to write types like:
+    ```rust 
+        struct Wrapper<T> {
+            value: T,  // T can be of any type making code reusable and type-safe.
+        } 
+    ```
+ 
+  This means `Identity` function works doe any type: (i32, u32, &str ).
+
+[ Note: Why is this parametric polymorphism?
+  
+  Because the behavior of identity is parameterized by the type T, it works uniformly regardless of what 
+  type you pass in — the exact type is a parameter of the function.
+
+  Parametric polymorphism = writing functions or data types that work for any type.
+  *Generics in Rust are the language feature that implements parametric polymorphism.*
+]
+This lets you write flexible, reusable code without losing type safety.
+
+ example: 
+
+ ```rust 
+    // A generic function that returns whatever it receives
+    fn identity<T>(value: T) -> T {
+        value  // Just returns the input value of any type T 
+    }
+
+    fn main() {
+        let int_val = identity(5);        // T inferred as i32
+        let str_val = identity("hello");  // T inferred as &str
+        println!("int_val = {}, str_val = {}", int_val, str_val);
+    }
+```
+    - `<T>` declares a generic type parameter `T`.
+    - identity works for any type T — that’s parametric polymorphism.
+    - The function simply returns the input value without caring about its type.
+    - Rust infers the specific type when you call it (i32 for 5, &str for "hello").
 
 
-there are other possible types : traits and functions ...
+There are other possible types : traits and functions ...
 
 Rust enums ( which are sum-type ) make most sense when you want to represent a 'choice' as type of something
 
@@ -53,15 +111,17 @@ Here x and y have to be something but can not have both values.
 
 
 So 
+```rust 
 enum Color {
     Red,
     Green,
     Blue,
 }
+```
 Unlike C, Rust’s type system isn’t entirely based on integers. 
 Types have significantly more meaning. 
-Instead, Color is a type in your program where Color::Red is a distinct value from Color::Green is a 
-distinct value from Color::Blue, in the same way that 0 is distinct from 1 or 2 in C.
+Instead, Color is a type in your program where `Color::Red` is a distinct value from `Color::Green` is a 
+distinct value from `Color::Blue`, in the same way that 0 is distinct from 1 or 2 in C.
 
 [ There are crates that map this enums to integers if we wish to use them as C or C++ ]
 
