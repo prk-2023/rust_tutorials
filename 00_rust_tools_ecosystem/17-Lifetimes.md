@@ -1,5 +1,72 @@
 # Rust Lifetimes:
 
+---
+Why do we we need Lifetimes in rust?
+
+Lifetimes are a way to ensure memory safety by making sure that references do not overlive the data they point to.
+
+They are crucial concept for the borrow checker to prevent *dangling references* ( that is references to 
+data that has been deallocated or no longer valid.)
+
+```rust 
+// Example without lifetime ( this program does not compile )
+fn main () {
+    let r;
+    {
+        let x = 42;
+        r = &x; // Error: `x` does not live longer enough 
+    }
+    println!("{}", r); // using r after x is out of scope 
+}
+```
+In the above code after `x` gets dropped `r` would point to invalid memory address, which is a *dangling references
+
+Rust does not allow this because it would cause undefined behaviour. 
+=> The Borrow checker will prevent this from compiling.
+
+Fix this:
+
+To fix this Rust Introduces a concept of lifetime annotations to tell rust how long the reference is valid:
+
+```rust 
+fn main() {
+    let x = 42;
+    let r: &i32 = &x; // r is valid as long as x is in scope 
+    println!("{}", r) // prints 42
+}
+```
+Here reference `r` is allowed because `x` will live long enough for `r` to be used.
+
+Explicit Lifetime Annotation in Functions:
+
+```rust 
+fn longest<'a>( s1: &'a str, s2: &'a str) -> &'a str {
+    if s1.len() > s2.len() {
+        s1
+    } else { s2 }
+}
+fn main() {
+    let string1 = String::from("Hello");
+    let string2 = String::from("World!");
+
+    let result = longest(&string1, &string2);
+    println!("The longest string is {}", result);
+}
+```
+- function longest  takes 2 arguments of string slices `s1` and `s2` both with same lifetime `'a` and return
+  a reference that lives for the same lifetime `'a`
+- the lifetime annotation `'a` ensures that the reference returned by `longest` will not outlive the input 
+  references, `s1` and `s2`.
+- The compiler can infer lifetimes automatically in some cases, but you can explicitly specify them when the 
+  function's signature requires it.
+
+Lifetime: Makes sure 
+1. No dangling references: A reference must never outlive the data it points to.
+2. Safe Memory management: Borrow checker ensures that at any point in time, wither one part of the code has 
+   a mutable reference or there are multiple immutable references, but not BOTH.
+
+---
+
 ## Introduction
 Rust’s ownership model ensures memory safety by tracking how data is borrowed. 
 Lifetimes are annotations that tell the compiler how long references are valid, ensuring they don’t outlive 
@@ -15,12 +82,12 @@ NOTE:
     - They are used by the compilers `Borrow checker` to ensure memory safety.
 
 ### Why are lifetimes required?
-Rust doen't use a GC - It enforces `strict ownership and borrowing rules` to
+Rust doesn't use a GC - It enforces `strict ownership and borrowing rules` to
     - Prevent dangling references ( pointers )
         Ensures references do not point to `deallocated` memory.
     - Enable safe-borrowing: 
         Enables multiple parts of the code to access data without ownership conflicts.
-    - compiletime checks: Rust Borrow checker uses lifetimes to enforce safety at compile time.
+    - compile time checks: Rust Borrow checker uses lifetimes to enforce safety at compile time.
     - Avoid use-after-free bugs
     - Ensure Safe memory access.
 
