@@ -208,9 +208,372 @@ for animal in animals {
 
 
 
+### 5. Supertraits:
+
+A **trait that depends on another trait**
+
+```rust 
+trait Write {
+    fn write(&self);
+}
+
+trait Log: Write {
+    fn log(&self) {
+        self.write(); // can call write because it's a supertrait.
+    }
+}
+```
+
+### 6. Auto Traits:
+
+Automatically Implemented traits by the compiler like:
+- `Send`, `Sync`, `Unpin` ...
+
+Note: Custom auto traits are unstable as of now.
+
+### 7. Marker Traits:
+- Traits with no methods.
+- `Copy`, `Sized`, `Send`, `Sync`
+
+### 8. Derivable Traits:
+
+Rust provides built-in **derive Macro** for common traits:
+
+- `#[derive]` attribute
+- Common traits: `Debug`, `Clone`, `Copy`, `PartialEq`, etc.
+
+```rust 
+#[derive(Debug, Clone, PartialEq)]
+struct Point {
+    x: i32,
+    y: i32,
+}
+```
+
+```rust 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct User {
+    name: String,
+    age: i32,
+}
+```
+
+**Common derivable traits**: 
+
+* `Debug`
+* `Clone`, `Copy`
+* `PartialEq`, `Eq`
+* `Ord`, `PartialOrd`
+* `Hash`
+* `Default`
+
+And there are  **Common Standard Library Traits**
+
+| Trait               | Purpose                  |
+| ------------------- | ------------------------ |
+| `Debug`             | For printing with `{:?}` |
+| `Clone` / `Copy`    | Duplicate values         |
+| `Default`           | Create default values    |
+| `PartialEq`, `Eq`   | Equality                 |
+| `PartialOrd`, `Ord` | Ordering                 |
+| `Iterator`          | Iteration                |
+| `Into`, `From`      | Conversions              |
+| `AsRef`, `Borrow`   | References and borrowing |
+| `Deref`, `Drop`     | Smart pointers & cleanup |
 
 
+### 9. Associated Traits:
 
+Instead of generic parameters, traits can use **associated types**:
+
+```rust
+trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>;
+}
+```
+
+Usage:
+
+```rust
+struct Counter;
+
+impl Iterator for Counter {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(42)
+    }
+}
+```
+
+### 10. Trait Objects Vs Generics 
+- Static vs dynamic dispatch 
+- Performance trade-offs
+
+
+### 11. Advanced Trait Features: 
+- **Higher-Rank Trait Bounds (HRTB)**
+- **Trait Objects with multiple traits**
+- **Trait aliases**  (nightly)
+- **Specialization** (nightly)
+
+Allows more specific trait impls to override more general ones.
+
+```rust
+default fn do_thing(&self) {
+    println!("Default");
+}
+```
+
+HRTB: Used when a trait must work for **all lifetimes**.
+
+```rust
+fn do_something<F>(f: F)
+where
+    F: for<'a> Fn(&'a str),
+{
+    f("hello");
+}
+```
+
+
+Currently **unstable**, only available with nightly Rust.
+
+### 12. Common Standard Library Traits:
+- `From`/`Into` : for conversions 
+- `Deref`/`DerefMut` for smart pointers 
+- `Drop` for destructors 
+- `Iterator` for collections 
+- `Display`/`Debug` for formatting
+
+### 13. Trait Coherence and Orphan Rules
+- Where traits can be implemented
+- Avoiding conflicting implementations
+
+What is Orphan Rule?
+
+Rust doesn’t allow you to implement **foreign traits on foreign types**.
+
+```rust
+// Not allowed:
+impl Display for Vec<u8> {} // Both Display and Vec are foreign
+```
+
+Only allowed if:
+
+* You own the trait
+* Or you own the type
+
+### 14. Trait Objects and Object Safety
+- Requirements for trait objects
+- `Sized` considerations
+
+
+### 15. Blanket Implementations
+
+Useful for applying traits to **all types meeting a condition**:
+
+```rust
+trait Printable {
+    fn print(&self);
+}
+
+impl<T: Debug> Printable for T {
+    fn print(&self) {
+        println!("{:?}", self);
+    }
+}
+```
+
+This makes **all `T: Debug` types** also implement `Printable`.
+
+
+### 16. Implementing Traits for External Types:
+
+Wrap the external type in a **newtype**"
+
+```rust 
+struct MyVec(Vec<u8>); // this is tuple struct
+impl Printable for MyVec {
+    fn print(&self) {
+        println!("{:?}",self.0 );
+    }
+}
+```
+full example:
+
+```rust 
+
+struct Manu {
+    name: String,
+}
+
+// since rust prevents to define global string directly
+struct Msg(String); // we put the string inside a tuple struct
+
+trait Hariom {
+    fn speak(&self);
+}
+
+impl Hariom for Manu {
+    fn speak(&self) {
+        println!("{}Hari Om Tat Sat", self.name);
+    }
+}
+impl Hariom for Msg {
+    fn speak(&self) {
+        println!("Encoded message : {}", self.0); // self.0 is to reach the elements inside tuple
+                                                  // struct
+    }
+}
+fn main() {
+    let manu = Manu {
+        name: "manush".to_string(),
+    };
+    manu.speak();
+    let x = Msg("Hello from Rust".to_string());
+    x.speak();
+}
+```
+
+### 17. Test Traits (Mocking, etc.)
+
+You can use traits to write **mockable** and **testable** code by abstracting behavior.
+
+```rust
+trait Database {
+    fn query(&self, sql: &str) -> String;
+}
+```
+
+Then in tests:
+
+```rust
+struct MockDb;
+
+impl Database for MockDb {
+    fn query(&self, _: &str) -> String {
+        "mock result".into()
+    }
+}
+```
+
+Summary Table
+
+| Concept           | Description                                         |
+| ----------------- | --------------------------------------------------- |
+| Traits            | Define shared behavior                              |
+| `impl Trait`      | Abstract parameters and return types                |
+| Trait Bounds      | Restrict generic types                              |
+| Trait Objects     | Runtime polymorphism                                |
+| Default Methods   | Shared default implementations                      |
+| Associated Types  | Define internal type placeholders                   |
+| Supertraits       | Require one trait to implement another              |
+| Blanket Impls     | Apply trait to all types matching condition         |
+| Orphan Rule       | Prevents implementing foreign trait on foreign type |
+| Auto Traits       | Built-in marker traits                              |
+| Procedural Macros | Auto-implement traits with custom macros            |
+...
+
+## Complete Example: 
+
+```rust 
+use std::fmt::Display;
+
+//Basic trait with default implementation 
+trait Animal: Display { 
+    fn name(&self) -> &str;
+
+    fn make_sound(&self) -> String {
+        "Some generic animal sound!!".to_string()
+    }
+
+    // Associated function 
+    ////fn animal_type() -> String {
+    ////    "Animal".to_string()
+    ////}
+    /* Comment this error as the above trait is not object safe 
+        Object Safe requiers: 
+        - All methods called on the trait object must have receiver (self, &self, or &mut self)
+        - No generic methods 
+        - No methods that return `Self` ( the concrete implementor type).
+        - No associated functions (static methods) that you might try to call on the trait object.
+       
+    */
+}
+
+//Supertrait
+trait Pet: Animal {
+    fn owner(&self) -> &str;
+}
+
+struct Dog {
+    name: String,
+    owner: String,
+}
+
+impl Display for Dog {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Dog: {} (owned by {})", self.name, self.owner)
+    }
+}
+
+impl Animal for Dog {
+    fn name(&self) -> &str {
+        &self.name 
+    }
+
+    // fn make_sound(&self) -> String {
+    //    "Woof!".to_string()
+    //}
+}
+
+impl Pet for Dog {
+    fn owner(&self) -> &str {
+        &self.owner 
+    }
+}
+
+//Generic Function with trait bounds:
+fn introduce<T: Pet>(pet:&T) {
+    println!("This is {}, owned by {}", pet.name(), pet.owner());
+    println!("It says: {}", pet.make_sound());
+}
+
+// Trait objects for dynamic dispatch
+fn process_animals(animals: &[&dyn Animal]) {
+    for animal in animals {
+        println!("{} - {}", animal, animal.make_sound());
+    }
+}
+
+fn main() {
+    let dog = Dog {
+        name: "Buddy".to_string(),
+        owner: "Alice".to_string(),
+    };
+
+    introduce(&dog);
+
+    let animals: Vec<&dyn Animal> = vec![&dog];
+
+    let animals: Vec<&dyn Animal> = vec![&dog];
+    process_animals(&animals);
+}
+```
+
+
+## Key Concepts to Remember
+
+1. **Trait Bounds**: Compile-time polymorphism with monomorphization
+2. **Trait Objects**: Runtime polymorphism with dynamic dispatch
+3. **Object Safety**: Traits must not return `Self` or use generic methods to be object-safe
+4. **Coherence Rules**: You can only implement traits for types you own
+5. **Zero-Cost Abstractions**: Traits provide abstraction without runtime overhead
+
+Traits are fundamental to Rust's type system and enable much of the language's safety, performance, and expressiveness.
 
 ## References:
 ---------------------------------------------------------------------------------- 
@@ -345,697 +708,3 @@ the actual type of the object.
 This demonstrates the power of interfaces in C++, which allow us to write generic code that can work with  
 a variety of classes that implement a common interface.
 ---------------------------------------------------------------------------------- 
-
-
-# Rust Traits: A Comprehensive Guide
-
-Traits are one of Rust's most powerful features, enabling polymorphism, code reuse, and type system flexibility. Here's a complete explanation of traits and all related topics.
-
-## What are Traits?
-
-Traits define shared behavior that types can implement. They're similar to interfaces in other languages but more powerful.
-
-```rust
-// Define a trait
-trait Speak {
-    fn speak(&self) -> String;
-}
-
-// Implement for a type
-struct Dog {
-    name: String,
-}
-
-impl Speak for Dog {
-    fn speak(&self) -> String {
-        format!("{} says woof!", self.name)
-    }
-}
-
-struct Cat;
-impl Speak for Cat {
-    fn speak(&self) -> String {
-        "Meow!".to_string()
-    }
-}
-```
-
-## Trait-Related Topics to Cover
-
-### 1. Basic Trait Implementation
-- Defining traits with methods
-- Implementing traits for types
-- Associated functions in traits
-
-### 2. Trait Bounds
-- Generic functions with trait bounds
-- `where` clauses for complex bounds
-
-```rust
-fn make_sound<T: Speak>(animal: &T) {
-    println!("{}", animal.speak());
-}
-
-// Equivalent with where clause
-fn make_sound<T>(animal: &T) 
-where 
-    T: Speak,
-{
-    println!("{}", animal.speak());
-}
-```
-
-### 3. Trait Objects
-- Dynamic dispatch with `dyn Trait`
-- Object safety requirements
-
-```rust
-// Trait objects for heterogeneous collections
-let animals: Vec<&dyn Speak> = vec![&dog, &cat];
-for animal in animals {
-    println!("{}", animal.speak());
-}
-```
-
-### 4. Associated Types
-- Type placeholders in traits
-- Versus generic traits
-
-```rust
-trait Iterator {
-    type Item;  // Associated type
-    
-    fn next(&mut self) -> Option<Self::Item>;
-}
-```
-
-### 5. Generic Traits
-- Traits with type parameters
-- Versus associated types
-
-```rust
-trait Convert<T> {
-    fn convert(self) -> T;
-}
-```
-
-### 6. Default Method Implementations
-- Providing default behavior
-- Overriding defaults
-
-```rust
-trait Greet {
-    fn greet(&self) -> String {
-        "Hello!".to_string()
-    }
-}
-```
-
-### 7. Supertraits
-- Traits that require other traits
-- Inheritance-like relationships
-
-```rust
-trait SuperTrait: SubTrait1 + SubTrait2 {
-    // Requires implementing SubTrait1 and SubTrait2
-}
-```
-
-### 8. Auto Traits
-- Automatically implemented traits
-- `Send`, `Sync`, etc.
-
-### 9. Marker Traits
-- Traits with no methods
-- `Copy`, `Sized`, `Send`, `Sync`
-
-### 10. Derivable Traits
-- `#[derive]` attribute
-- Common traits: `Debug`, `Clone`, `Copy`, `PartialEq`, etc.
-
-```rust
-#[derive(Debug, Clone, PartialEq)]
-struct Point {
-    x: i32,
-    y: i32,
-}
-```
-
-### 11. Trait Objects vs Generics
-- Static vs dynamic dispatch
-- Performance tradeoffs
-
-### 12. Advanced Trait Features
-- **Higher-Rank Trait Bounds (HRTB)**
-- **Trait objects with multiple traits**
-- **Trait aliases** (nightly)
-- **Specialization** (nightly)
-
-### 13. Common Standard Library Traits
-- `From`/`Into` for conversions
-- `Deref`/`DerefMut` for smart pointers
-- `Drop` for destructors
-- `Iterator` for collections
-- `Display`/`Debug` for formatting
-
-### 14. Trait Coherence and Orphan Rules
-- Where traits can be implemented
-- Avoiding conflicting implementations
-
-### 15. Trait Objects and Object Safety
-- Requirements for trait objects
-- `Sized` considerations
-
-## Complete Example
-
-```rust
-use std::fmt::Display;
-
-// Basic trait with default implementation
-trait Animal: Display {
-    fn name(&self) -> &str;
-    
-    fn make_sound(&self) -> String {
-        "Some generic animal sound".to_string()
-    }
-    
-    // Associated function
-    fn animal_type() -> String {
-        "Animal".to_string()
-    }
-}
-
-// Supertrait
-trait Pet: Animal {
-    fn owner(&self) -> &str;
-}
-
-struct Dog {
-    name: String,
-    owner: String,
-}
-
-impl Display for Dog {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Dog: {} (owned by {})", self.name, self.owner)
-    }
-}
-
-impl Animal for Dog {
-    fn name(&self) -> &str {
-        &self.name
-    }
-    
-    fn make_sound(&self) -> String {
-        "Woof!".to_string()
-    }
-    
-    fn animal_type() -> String {
-        "Dog".to_string()
-    }
-}
-
-impl Pet for Dog {
-    fn owner(&self) -> &str {
-        &self.owner
-    }
-}
-
-// Generic function with trait bounds
-fn introduce<T: Pet>(pet: &T) {
-    println!("This is {}, owned by {}", pet.name(), pet.owner());
-    println!("It says: {}", pet.make_sound());
-}
-
-// Trait objects for dynamic dispatch
-fn process_animals(animals: &[&dyn Animal]) {
-    for animal in animals {
-        println!("{} - {}", animal, animal.make_sound());
-    }
-}
-
-fn main() {
-    let dog = Dog {
-        name: "Buddy".to_string(),
-        owner: "Alice".to_string(),
-    };
-    
-    introduce(&dog);
-    
-    let animals: Vec<&dyn Animal> = vec![&dog];
-    process_animals(&animals);
-}
-```
-
-## Key Concepts to Remember
-
-1. **Trait Bounds**: Compile-time polymorphism with monomorphization
-2. **Trait Objects**: Runtime polymorphism with dynamic dispatch
-3. **Object Safety**: Traits must not return `Self` or use generic methods to be object-safe
-4. **Coherence Rules**: You can only implement traits for types you own
-5. **Zero-Cost Abstractions**: Traits provide abstraction without runtime overhead
-
-Traits are fundamental to Rust's type system and enable much of the language's safety, performance, and expressiveness.
-----------------------------------------------------------------------------------
-Here's a **comprehensive guide to Rust traits**, designed to walk you through **everything you need to know**, from the basics to advanced features like trait objects, generics, coherence, and procedural macros.
-
----
-
-# 🦀 Rust Traits – A Comprehensive Guide
-
----
-
-## 📌 What is a Trait in Rust?
-
-A **trait** in Rust is a language feature that defines **shared behavior**. It's similar to interfaces in other languages like Java or TypeScript.
-
-```rust
-trait Speak {
-    fn speak(&self) -> String;
-}
-```
-
-Any type that implements this trait must define the `speak` method.
-
----
-
-## ✅ Defining Traits
-
-```rust
-trait Printable {
-    fn print(&self);
-}
-```
-
-This declares a trait with one method, `print`.
-
-### Traits with Default Methods
-
-Traits can provide **default implementations**:
-
-```rust
-trait Printable {
-    fn print(&self) {
-        println!("Default print");
-    }
-}
-```
-
-### Associated Functions (like static methods)
-
-```rust
-trait Math {
-    fn zero() -> Self;
-}
-```
-
----
-
-## 👷 Implementing Traits
-
-```rust
-struct Person {
-    name: String,
-}
-
-impl Printable for Person {
-    fn print(&self) {
-        println!("Person: {}", self.name);
-    }
-}
-```
-
-You can implement traits for structs, enums, and other types (even primitive types, with rules).
-
----
-
-## 🔧 Trait Bounds & Generics
-
-Traits can be used as **constraints** (bounds) for generic types.
-
-```rust
-fn display<T: Printable>(item: T) {
-    item.print();
-}
-```
-
-Equivalent shorthand with `where` clause:
-
-```rust
-fn display<T>(item: T)
-where
-    T: Printable,
-{
-    item.print();
-}
-```
-
-Multiple trait bounds:
-
-```rust
-fn do_stuff<T: Clone + Printable>(item: T) { ... }
-```
-
----
-
-## 🧱 Traits and Structs Together
-
-### Using Traits to Define Behavior
-
-```rust
-trait Area {
-    fn area(&self) -> f64;
-}
-
-struct Circle {
-    radius: f64,
-}
-
-impl Area for Circle {
-    fn area(&self) -> f64 {
-        3.14 * self.radius * self.radius
-    }
-}
-```
-
----
-
-## 📦 Trait Objects & Dynamic Dispatch
-
-Used when you want **runtime polymorphism**.
-
-```rust
-trait Drawable {
-    fn draw(&self);
-}
-
-struct Button;
-impl Drawable for Button {
-    fn draw(&self) {
-        println!("Drawing a Button");
-    }
-}
-
-fn render(ui: &dyn Drawable) {
-    ui.draw();
-}
-```
-
-* `&dyn Trait` is a **trait object**.
-* Enables **dynamic dispatch** (like vtables in C++).
-* Can only be used with **object-safe** traits.
-
----
-
-## 🚫 Object Safety
-
-Trait must be **object-safe** to use with `dyn`:
-
-1. No generic methods
-2. Method must use `&self`, `&mut self`, or `self`
-
-✅ Allowed:
-
-```rust
-trait Good {
-    fn do_it(&self);
-}
-```
-
-❌ Not allowed:
-
-```rust
-trait Bad {
-    fn new<T>() -> T;
-}
-```
-
----
-
-## 🧠 Supertraits
-
-A **trait that depends on another trait**.
-
-```rust
-trait Write {
-    fn write(&self);
-}
-
-trait Log: Write {
-    fn log(&self) {
-        self.write(); // Can call write because it's a supertrait
-    }
-}
-```
-
----
-
-## 🏗️ Deriving Traits
-
-Rust provides built-in **derive macros** for common traits:
-
-```rust
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct User {
-    name: String,
-    age: u32,
-}
-```
-
-Common derivable traits:
-
-* `Debug`
-* `Clone`, `Copy`
-* `PartialEq`, `Eq`
-* `Ord`, `PartialOrd`
-* `Hash`
-* `Default`
-
----
-
-## 📚 Common Standard Library Traits
-
-| Trait               | Purpose                  |
-| ------------------- | ------------------------ |
-| `Debug`             | For printing with `{:?}` |
-| `Clone` / `Copy`    | Duplicate values         |
-| `Default`           | Create default values    |
-| `PartialEq`, `Eq`   | Equality                 |
-| `PartialOrd`, `Ord` | Ordering                 |
-| `Iterator`          | Iteration                |
-| `Into`, `From`      | Conversions              |
-| `AsRef`, `Borrow`   | References and borrowing |
-| `Deref`, `Drop`     | Smart pointers & cleanup |
-
----
-
-## 🧰 Associated Types
-
-Instead of generic parameters, traits can use **associated types**:
-
-```rust
-trait Iterator {
-    type Item;
-
-    fn next(&mut self) -> Option<Self::Item>;
-}
-```
-
-Usage:
-
-```rust
-struct Counter;
-
-impl Iterator for Counter {
-    type Item = u32;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(42)
-    }
-}
-```
-
----
-
-## 🧩 Trait Inference with `impl Trait`
-
-Used for returning types that implement a trait:
-
-```rust
-fn make_counter() -> impl Iterator<Item = u32> {
-    0..10
-}
-```
-
-Also usable in function parameters:
-
-```rust
-fn print_it(item: impl Printable) {
-    item.print();
-}
-```
-
----
-
-## ⚠️ Trait Coherence & Orphan Rule
-
-### What is the Orphan Rule?
-
-Rust doesn’t allow you to implement **foreign traits on foreign types**.
-
-```rust
-// Not allowed:
-impl Display for Vec<u8> {} // Both Display and Vec are foreign
-```
-
-Only allowed if:
-
-* You own the trait
-* Or you own the type
-
----
-
-## 🔄 Blanket Implementations
-
-Useful for applying traits to **all types meeting a condition**:
-
-```rust
-trait Printable {
-    fn print(&self);
-}
-
-impl<T: Debug> Printable for T {
-    fn print(&self) {
-        println!("{:?}", self);
-    }
-}
-```
-
-This makes **all `T: Debug` types** also implement `Printable`.
-
----
-
-## 🧪 Auto Traits
-
-Auto traits are automatically implemented by the compiler, like:
-
-* `Send`
-* `Sync`
-* `Unpin`
-
-Custom auto traits are unstable as of now.
-
----
-
-## 🔍 Trait Specialization (Experimental)
-
-Allows more specific trait impls to override more general ones.
-
-```rust
-default fn do_thing(&self) {
-    println!("Default");
-}
-```
-
-Currently **unstable**, only available with nightly Rust.
-
----
-
-## 📦 Procedural Macros & Traits
-
-Traits can be derived using **custom procedural macros**:
-
-```rust
-#[derive(MyTrait)]
-struct MyStruct;
-```
-
-These are written using crates like `syn`, `quote`, and `proc-macro`.
-
----
-
-## 🛠️ Implementing Traits for External Types
-
-Wrap the external type in a **newtype**:
-
-```rust
-struct MyVec(Vec<u8>);
-
-impl Printable for MyVec {
-    fn print(&self) {
-        println!("{:?}", self.0);
-    }
-}
-```
-
----
-
-## 🔗 Trait Composition with `impl Trait + Trait`
-
-```rust
-fn log_and_draw(item: impl Log + Drawable) {
-    item.draw();
-    item.log();
-}
-```
-
----
-
-## 🧠 Advanced: Higher-Ranked Trait Bounds (HRTBs)
-
-Used when a trait must work for **all lifetimes**.
-
-```rust
-fn do_something<F>(f: F)
-where
-    F: for<'a> Fn(&'a str),
-{
-    f("hello");
-}
-```
-
----
-
-## 🧪 Test Traits (Mocking, etc.)
-
-You can use traits to write **mockable** and **testable** code by abstracting behavior.
-
-```rust
-trait Database {
-    fn query(&self, sql: &str) -> String;
-}
-```
-
-Then in tests:
-
-```rust
-struct MockDb;
-
-impl Database for MockDb {
-    fn query(&self, _: &str) -> String {
-        "mock result".into()
-    }
-}
-```
-
----
-
-# 📚 Summary Table
-
-| Concept           | Description                                         |
-| ----------------- | --------------------------------------------------- |
-| Traits            | Define shared behavior                              |
-| `impl Trait`      | Abstract parameters and return types                |
-| Trait Bounds      | Restrict generic types                              |
-| Trait Objects     | Runtime polymorphism                                |
-| Default Methods   | Shared default implementations                      |
-| Associated Types  | Define internal type placeholders                   |
-| Supertraits       | Require one trait to implement another              |
-| Blanket Impls     | Apply trait to all types matching condition         |
-| Orphan Rule       | Prevents implementing foreign trait on foreign type |
-| Auto Traits       | Built-in marker traits                              |
-| Procedural Macros | Auto-implement traits with custom macros            |
-
----
-
-Would you like this guide in **PDF**, **Markdown**, or as a **code project template**? I can generate that for you too.
