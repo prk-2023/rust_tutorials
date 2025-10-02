@@ -3,24 +3,27 @@
 - Rust enums is a type that represents data that is one of several possible variants. Each variant in the
   'enum' can optionally have data associated with it.
 
-- Enums are way to define a set of named values. mainly useful when you have a fixed set of distinct values
-  that have a particular meaning in the code.
+- 'Enums' are way to define a set of named values. 
+  Mainly useful when you have a fixed set of distinct values that have a particular meaning in the code.
 
-- Define enum:
+- Define `enum`:
 
+```
     enum Color {  // like structures Enums names begin with Capital letter 
         Red, 
         Green, 
         Blue,
     }
+```
 
-In this example, we define an enum called `Color` with three possible values: `Red`, `Green`, and `Blue`.
+In this example, we define an `enum` called `Color` with three possible values: `Red`, `Green`, and `Blue`.
 
-Enum Values
-------------
+`Enum` Values
+-------------
 
-Enum values can be used in the same way as any other value in Rust. Here is an example of how to use the 
-`Color` enum:
+`Enum` values can be used in the same way as any other value in Rust. 
+
+Here is an example of how to use the `Color` enum:
 
 ```rust
 fn main() {
@@ -39,7 +42,7 @@ We then use a `match` statement to print out a message depending on the value of
 Enum Values with Associated Data
 ---------------------------------
 
-One of the powerful features of Rust enums is that they can have associated data. Here is an example:
+One of the powerful features of Rust `enums` is that they can have associated data. Here is an example:
 
 ```rust
 enum IpAddress {
@@ -365,7 +368,7 @@ let and_then_value =
 Here's an example of using `Option` to handle a situation where a value might be present or absent:
 
 ```rust
-fn get_user_name(user_id: i32) -> Option<String> {
+fn get_user_name(user_id: i32) -> Option<String> { // Option<String> : value inside option is string or none.
     // Simulate a database query
     if user_id == 1 {
         Some("John Doe".to_string())
