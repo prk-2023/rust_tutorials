@@ -25,9 +25,10 @@
  * Enums and unsafe code (rare but sometimes used)
  */
 use std::cmp::Ordering;
+use std::fmt;
 use std::io::{self, SeekFrom};
 use std::net::{IpAddr, SocketAddr};
-use std::task::Poll;
+use std::task::Poll; // used below to implement a Display trait for enums ( similar to strum crate)
 
 // Simulated IoPriority enum
 #[derive(Debug, Clone, Copy)]
@@ -84,6 +85,31 @@ impl List {
     }
 }
 
+// Implement a Display trait for enum
+// First Define the Enum ( ex: enum that  represents different types of currency.
+enum Currency {
+    TWD, // NewTaiwan Dollar
+    INR, // Indian Rupee
+    JPY, // Japanese Yen
+    CNY, // Chinese Yuan
+}
+
+// Next we implement a Display trait:
+// This defines how currency value should be formatted as string
+// i.e this crate helps to represent enum to string
+
+impl fmt::Display for Currency {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        //use match expression to handle each enum variant:
+        match self {
+            Currency::TWD => write!(f, "New Taiwan Dollar!"),
+            Currency::INR => write!(f, "Bharat Rupee!"),
+            Currency::JPY => write!(f, "Japanese Yen!"),
+            Currency::CNY => write!(f, "Chinese Yuan!"),
+        }
+    }
+}
+
 fn main() {
     // Using Message enum with associated data
     let msg = Message::Move { x: 10, y: 20 };
@@ -127,4 +153,13 @@ fn main() {
     } else {
         println!("No name found");
     }
+
+    let price_tag = Currency::TWD;
+    let exchange_rate = Currency::JPY;
+    let saving_acct = Currency::INR;
+    println!("Required currency is {}", price_tag);
+    println!("Tracking exchange rate for {}", Currency::JPY);
+
+    let message = format!("Your savings are in {}", saving_acct);
+    println!("{}", message);
 }

@@ -38,7 +38,7 @@ To understand enums, it's essential to know about the different types in Rust:
     
 *   **Generic Types**: 
     These are types that are defined in terms of some other type (or types) `T`. 
-    They allow for more flexibility and reusability in your code.
+    They allow for more flexibility and re-usability in your code.
     - Rust supports `parametric polymorphism`  via `generics`
     i.e : *`Writing code that works with any any data type.`*
     
@@ -839,3 +839,71 @@ let str_list = LinkedList::Node(
 Same structure, different type — that’s parametric polymorphism in action.
 
 Would you like to see how to add methods like `push` or `print` to the list?
+
+
+# implement custom traits on Enums:
+
+## Manual Implementation of `Display` trait:
+
+Example of Display trait for a simple enum:
+
+```rust 
+use std::fmt;
+
+// 1. Define the Enum
+// This enum represents different types of currency.
+enum Currency {
+    USD, // United States Dollar
+    EUR, // Euro
+    JPY, // Japanese Yen
+    GBP, // British Pound
+}
+
+// 2. Implement the Display Trait
+// This defines how a Currency value should be formatted as a string.
+impl fmt::Display for Currency {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Use a match expression to handle each enum variant.
+        match self {
+            Currency::USD => write!(f, "US Dollar ($)"),
+            Currency::EUR => write!(f, "Euro (€)"),
+            Currency::JPY => write!(f, "Japanese Yen (¥)"),
+            Currency::GBP => write!(f, "British Pound (£)"),
+        }
+    }
+}
+
+fn main() {
+    let price_tag = Currency::USD;
+    let exchange_rate = Currency::EUR;
+    let savings_account = Currency::GBP;
+
+    // Use the Display implementation with the {} format specifier.
+    println!("--- Currency Display Examples ---");
+    println!("The required currency is: {}", price_tag);
+    println!("We are currently tracking the exchange rate for the: {}", exchange_rate);
+
+    // It also works with the format! macro
+    let message = format!("Your savings are denominated in: {}", savings_account);
+    println!("{}", message);
+}
+```
+
+- Key Takeaways:
+    - `use std::fmt;`: We need to bring the `fmt` module into scope to access the `Display` trait and 
+      `Formatter struct`.
+
+    - `impl fmt::Display for Currency`: This tells the Rust compiler we are defining the display behavior 
+      for the Currency type.
+    
+    - `fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result`: This is the required method signature.
+
+    - `&self` is the Currency value we are formatting.
+
+    - `f` is the formatter we write the output string to.
+
+    - `fmt::Result` is an alias for `Result<(), fmt::Error>`.
+
+    - `write!(f, "...")`: This macro is used inside fmt. 
+       This behaves like println! but writes the formatted string into the formatter (f) instead of to
+       standard output, and importantly, it returns the required `fmt::Result`.
