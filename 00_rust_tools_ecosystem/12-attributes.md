@@ -546,3 +546,164 @@ as:
   the struct's name and all of its fields along with their values, which is extremely useful for inspecting
   the state of a variable during development.
 
+----------------------------------------------------------
+
+# references:
+
+## Declarative programming:
+    Programming paradigm where you describe what you want to achive rather then how to achieve it. 
+    Instead of giving step-by-step instructions ( like imperative programming) you specify the desired
+    result, and the underlying system figures out the steps to get there. 
+
+    Ex: A SQL statement 
+        "SELECT * FROM users WHERE ate > 18" 
+        Here we describe what you want and not how to retrive it. 
+
+    HTML : you describes the structures and content of a webpage not how to render it. 
+
+## Rust: ( Declarative Programming)
+
+Rust is primarily an **imperative and systems programming** language, meaning it usually emphasized how you
+do things, with explicit control over memory, performance and control flow. 
+
+How ever Rust also supports declarative styles, mainly through **macros and functional programming
+concepts** and there are librarires and idioms that encourage a declerative approach.
+
+### Declarative aspects in Rust:
+
+1. Macros ( Declarative Macros )
+    - Rust's "macro_rules!" macros allow you to write **Declarative macros** which specify what pattern
+      of code should expand  to, rather than procedural instructions. 
+
+    - These mactos declare rules for code transformation, making it easier to generate repetitive code
+      of domain-specific languages inside Rust.
+
+    - Ex:
+    ```rust 
+    macro_rules! say_hello {
+        () => {
+            println!("Hello World!");
+        };
+    }
+
+    fn main() {
+        say_hello!();
+    }
+    ```
+    - You're declaring what patter you want expanded, not describing how to expand step-by-step.
+
+2. Functional style with iterators and closures:
+    - Rust Iterator adapters ( `map`, `filter`, `fold`, ...) support declarative style of processing
+      collections.
+    
+    - Instead of writing explicit loops and counters, you declare transformation on data. 
+
+    - Example:
+    ```rust 
+        let numbers = vec![1,2,3,4,5];
+        let evens: Vec<_> = numbers.iter()
+            .filter(|&x| x % 2 == 0 )
+            .map(|x| x*2)
+            .collect();
+    ```
+    - Here you declare what you want to do: filter even numbers and double them, rather then writing the
+      exact looping steps.
+
+3. Pattern matching:
+    - Rust `match` statement lets you declaratively express different behaviors based on the structure
+      of values.
+
+    - Instead of writing if-else chains with complex conditions, you declare how different patterns
+      should be hadnled.
+
+    - Example: 
+    ```rust 
+        let some_value = Some(42);
+
+        match some_value {
+            Some(x) => println!("Val is {}", x),
+            None => println!("No Value"),
+        }
+    ```
+    - This is more declarative then imperative if-else because you describe what cases you handle.
+
+### When does Rust tend to be more imperative?
+
+- When you manage memory explicitly using `unsafe`
+- When You write explicit loops and mutable state.
+- When dealing with sytem-level tasks requiring precise control.
+
+## Summary 
+
+- Rust isn't purely declarative bur offers many declarative tools and idioms.
+
+- You write what transformations you want on data with iterators.
+
+- you declare rules with macros. 
+
+- You handle data cases declaratively with patterns matching. 
+
+
+
+# Declarative Attributes:
+
+- These are types of matadata that you can attach to various parts of your code (like functions, structs,
+  modules, crates, ...) to influence how the compiler treats that code. They are called **declaratively**
+  because they _declare_ information about the item they're attached to, rather than performing imperative
+  logic.
+
+    ```rust 
+    #[derive(Debug, Clone)]
+    struct MyStruct {
+        value: i32,
+    }
+    ```
+- `#[derive(Debug, Clone)]` : is a declarative attribute telling the *compiler* to automatically implement
+  the `Debug` and `Clone` traits for `MyStruct`
+
+- What is it used for:
+
+- Declarative attributes in Rust serve a variety of purposes:
+
+    1. code generation: 
+    ```rust 
+    #[derive(Debug, PartialEq)] 
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+    ```
+    Tells the compiler to generate implementations of the `Debug` and `PartialEq` traits.
+
+    2. Conditional Compilation:
+    ```rust 
+    #[cfg(target_os = "windows")]
+    fn do_something() {
+        // Windows-specific code
+    }
+    ```
+    Only compiles if the target is windows.
+
+    3. Lint Control:
+    ```rust 
+    #[allow(dead_code)]
+    fn unused_function() {
+        // This won't trigger a warning
+    }
+    ```
+    4. Macro annotations:
+    ```rust 
+    #[tokio::main]
+    async fn main() {
+        // async runtime setup by tokio
+    }
+    ```
+    Applies a procedural macro ( In this case from `tokio`) to transform the function.
+
+Summary:
+
+- Declarative attributes are way to annotate rust code with metadata.
+
+- They influence compilation behaviour, generate code, control warnings and more 
+
+- Syntax: `#[attribute]` for outer attributes and `#![attribute]` for inner attributes.
