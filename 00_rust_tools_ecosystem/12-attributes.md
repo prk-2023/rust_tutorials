@@ -551,7 +551,7 @@ as:
 # references:
 
 ## Declarative programming:
-    Programming paradigm where you describe what you want to achive rather then how to achieve it. 
+    Programming paradigm where you describe what you want to achieve rather then how to achieve it. 
     Instead of giving step-by-step instructions ( like imperative programming) you specify the desired
     result, and the underlying system figures out the steps to get there. 
 
@@ -566,8 +566,15 @@ as:
 Rust is primarily an **imperative and systems programming** language, meaning it usually emphasized how you
 do things, with explicit control over memory, performance and control flow. 
 
-How ever Rust also supports declarative styles, mainly through **macros and functional programming
-concepts** and there are librarires and idioms that encourage a declerative approach.
+=> How ever Rust also supports declarative styles, mainly through **macros and functional programming
+concepts** and there are libraries and idioms that encourage a declarative approach.
+
+### Key Features of Declarative Programming include:
+- Immutability 
+- Pattern matching 
+- Expression over statements
+- Abstraction and Composition
+- No Side effects ( In pure declarative context )
 
 ### Declarative aspects in Rust:
 
@@ -609,7 +616,10 @@ concepts** and there are librarires and idioms that encourage a declerative appr
     - Here you declare what you want to do: filter even numbers and double them, rather then writing the
       exact looping steps.
 
-3. Pattern matching:
+3. Pattern matching: ( `match`, `if let`, `while let` )
+
+    Pattern matching lets you describe structure and how to handle them declaratively.
+
     - Rust `match` statement lets you declaratively express different behaviors based on the structure
       of values.
 
@@ -624,8 +634,54 @@ concepts** and there are librarires and idioms that encourage a declerative appr
             Some(x) => println!("Val is {}", x),
             None => println!("No Value"),
         }
+        ...
+        match some_option {
+            Some(val) => println!("Val: {}", val),
+            None => println!("No Value"),
+        }
     ```
     - This is more declarative then imperative if-else because you describe what cases you handle.
+    - Above snippet you declare how to handle different shapes of data, not steps to check and unpack them
+      manually ( as you would do in imperative language.)
+
+4. Algebraic data types: ( Enums + pattern matching ): 
+    `Result` and `Option` are core to Rust type system and are declarative ways to express state or
+    outcomes.
+    Example
+    ```rust 
+    enum Shape {
+        Circle(f64),
+        Rectange(f64,f64),
+    }
+    fn area(share: Shape) -> f64 {
+        match shape {
+            Shape::Circle(r) => std::f64::consts::PI*r*r,
+            Shape::Rectange(w,h) => w*h,
+        }
+    }
+    ```
+    This is data driven control flow rather then imperative conditionals.
+
+5. Immutability By default:
+
+        `let x = 5;`
+    Immutability removes side effects, a key aspect of declarative programming.
+
+6. Traits and Type Abstraction:
+
+    Traits in Rust declare behavioural contracts and are used to abstract over behavior declaratively:
+    ```rust 
+    trait Speak {
+        fn speak(&self);
+    }
+    struct Dog;
+    impl Speak for Dog {
+        fn speak(&self) {
+            println!("woof!");
+        }
+    }
+    ``` 
+    You declare capabilities ( what something can do), not how it's done internally.
 
 ### When does Rust tend to be more imperative?
 

@@ -33,7 +33,7 @@ Add to your Cargo.toml
 clap = {version = "4.5.48", features = ["derive"]}
 
 #### Method 1: Derive Macro:
-This is the most modern and recommended approache, its type-safe readable and easy to maintain.
+This is the most modern and recommended approach, its type-safe readable and easy to maintain.
 
 ##### Basic Structure:
 
@@ -95,7 +95,8 @@ fn main() {
 
 ----------------------------------------------
 
-Great! The [`clap`](https://crates.io/crates/clap) crate (short for **Command Line Argument Parser**) is the standard way to build CLI applications in Rust. It's powerful, flexible, and supports:
+Great! The [`clap`](https://crates.io/crates/clap) crate (short for **Command Line Argument Parser**) is the
+standard way to build CLI applications in Rust. It's powerful, flexible, and supports:
 
 * Positional and optional arguments
 * Flags and switches
