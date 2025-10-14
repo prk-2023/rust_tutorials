@@ -6,11 +6,68 @@ Rust's Module system helps you organize code as it grows:
 
 1. Packages: A Cargo feature that lets you build, test and share crates.
 
+    Package is a bundle of rust code. It can contain :
+    - 0 or 1 *library crates*
+    - 0 or more *binary crates*
+
+    It always has a Cargo.toml file 
+
+    Package can be thought of as a Project of App folder.
+
+    ```bash
+    $ cargo new my_project
+    my_project/
+    ├── Cargo.toml     # This is the package manifest
+    └── src/
+        └── main.rs    # This is the binary crate entry point
+    ```
+
 2. Crates: A tree of modules that produces a library or executable 
+
+    Crates are compilation unit, there are 2 types:
+
+    - Binary Crate: Has a `main` function and produces an executable.
+
+    - library Crate: Has no `main` function, provides functionality to be re-used. 
+
+    Think of crate as a deliverable what Cargo builds.
+
+    > Every package contains at leat one crate.
 
 3. Modules and use: let you control the organization, scope and privacy of paths.
 
+    Module is used to organize code within a *crate*.
+
+    You create module using 
+    ```rust 
+    
+        mod my_module;
+
+    ```
+    Or-Inline using:
+    ```rust 
+    mod math {
+        pub fn add(a: i32, b: i32) -> i32 {
+            a + b
+        }
+    }
+    ```
+
+    - Modules help in organizing large Codebase.
+    - Controlling visibility with `pub`.
+    - Creating reusable, testable components
+
 4. Paths: A way of naming an item, such as a struct, function, or module.
+
+    Path lets you reference items ( functions, struct, enums...) in modules. 
+    * `::` is the path seperator ( like `/` in filesystem )
+    * Absolute path: Starts from the Crate root.
+    * Relative path: Starts from the current module.
+
+    ex:
+    `crate::utils::math::add()`
+    or 
+    `self::math::add()`
 
 ### Why Modules matter:
 
@@ -608,7 +665,7 @@ mod front_of_house {
         pub fn add_to_waitlist() {}
         fn seat_at_table() {}
     }
-    
+ 
     pub mod serving {
         pub fn take_order() {}
         fn serve_order() {}
@@ -1182,4 +1239,6 @@ mod tests {
 }
 ```
 
-This tutorial provides a comprehensive foundation for Rust's module system. Practice by building the exercises and experimenting with different organizational patterns to find what works best for your projects!
+This tutorial provides a comprehensive foundation for Rust's module system. 
+Practice by building the exercises and experimenting with different organizational patterns to find what 
+works best for your projects!
