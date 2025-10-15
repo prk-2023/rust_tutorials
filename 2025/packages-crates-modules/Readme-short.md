@@ -534,6 +534,34 @@ my_project/
 └── src/
     └── main.rs    # This is the binary crate entry point
 ```
+The Cargo.toml file does not contain main.rs, as Cargo follows a convention that src/main.rs is the *crate
+root* of of the binary crate with the same name as the package. 
+
+=> Cargo knows that if the directory contains src/lib.rs the package contains a *library crate* with same
+name as the package, and src/lib.rs is its crate root. 
+
+Cargo passes the crate root files to `rustc` to build the library or binary.
+
+A package that has multiple binary crates are placed in src/bin directory: each will be separate binary
+crate.  example:
+
+my_project/
+├── Cargo.toml
+└── src/
+    └── bin/
+        ├── hello_world.rs
+        └── hello_rust.rs
+
+And there is no need to change the Cargo.toml about the new layout.
+Cargo treats any file in src/bin as a binary crate, and they get automatically discovered and compiled.
+
+Optionally you can also add this to Cargo.toml as below:
+
+[[bin]]
+name = "hello_world"
+path = "src/bin/hello_world.rs" 
+
+Note this is only required for some custom setups.
 
 ---
 
@@ -551,6 +579,18 @@ A **crate** is a compilation unit. There are two types:
 ---
 
 ### 3. Module
+
+[ Key Words: 
+    `use`: this keywords brings a path into scope
+    `pub`: this keyword make an item public
+
+  These keywords are used by the compiler which replaces `use` with full path making `HashMap` available
+  without typing the full path example like std::collections::HashMap... every time
+
+  `pub` makes the items (functions, struct, enumns, modules, constant ...) **public**. So that these can be
+  accessed from outside their defining module or crate. 
+]
+
 
 A **module** is used to organize code **within a crate**.
 

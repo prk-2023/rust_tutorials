@@ -160,7 +160,48 @@ mod tests {
 
 ## Defining Modules:
 --- 
+
+1. Start from crate root. 
+    Compiler first looks at src/ for main.rs lib.rs to compile.
+
+2. Declaring Modules:
+    In the crate root you can declare new module say we declare "garden" modules with "mod garden;"
+    The compiler will look for the modules code in that place:
+        src/garden.rs 
+    or  src/garden/mod.rs 
+
+3. Declaring sub-modules: It can be declared in any file other than the crate root. 
+You can declare sub-modules. Ex: you might declare "mod vegetables;" in src/garden.rs 
+In this case compiler will look at :
+
+src/garden/vegetables.rs 
+src/garden/vegetables/mod.rs 
+
+4. Paths to code in modules. 
+Once a module is part of your crate, you can refer to code in that module from anywhere else in the same
+crate, as long as the privacy rules allow, Using the path to the code. 
+Ex: an `Asparagus` type in the garden of vegetables module would be found at 
+
+crate::garden::vegetables::Asparagus
+
+5. Private vs Public: 
+
+Code within a module is private from its parent modules by default.
+To make a module public, declare it with `pub mod` instead of just `mod`
+To make items within a public module public as well use `pub` before their declarations. 
+
+6. The `use` keyword: within a scope the `use` keyword creates shortcuts to items to reduce repetition of
+   long paths. In any scope that can refer to 
+
+   `crate::garden::vegetables::Asparagus` you can create a shortcut using 
+   `use crate::garden::vegetables::Asparagus` 
+   After this we can directly use any thing with in Asparagus as `Asparagus` to make use of that type in the
+   scope.
+
+
+
 ### Basic Module Syntax:
+
 
 Example of a restaurant:
 with two modules front and back house operations
