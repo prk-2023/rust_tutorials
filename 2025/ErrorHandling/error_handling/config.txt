@@ -1,0 +1,2 @@
+app_name=MyCoolApp
+max_connections=100

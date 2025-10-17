@@ -1,0 +1,20 @@
+[package]
+name = "error_handling"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# This controls the debug symbol table and line numbers ... included in the release binary
+# Only gets applied when built using cargo build --release .
+# possible debug values are 
+# debug = false : no debug info generated
+# debug = true  : debug info is generated and equivalent to debug = 2 ( useful when debug release builds)
+# debug = 0 : same as false 
+# debug = 1 : line table only ( small debug info useful for things like backtrace)
+# debug = 2 : full debug info same as true
+#-----
+# to control the size use opt-level = z ( size optimization binary )
+[profile.release]
+debug = true
+opt-level = "z" 
