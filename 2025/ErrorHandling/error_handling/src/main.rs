@@ -15,10 +15,11 @@
 use std::fs::File;
 use std::io::{self, Read};
 use std::num::ParseIntError;
-use std::path::Path;
+//use std::path::Path;
 
 // Define a custom error type that can represent various errors
 #[derive(Debug)]
+#[allow(dead_code)]
 enum ConfigError {
     Io(io::Error),
     Parse(ParseIntError),
@@ -39,13 +40,15 @@ impl From<ParseIntError> for ConfigError {
 
 //Struct to hold our configuration
 #[derive(Debug)]
+#[allow(dead_code)]
+#[allow(unused_variables)]
 struct AppConfig {
     app_name: String,
     max_connections: u32,
 }
 // Function to read the contents of a file into a string:
 fn read_file_to_string(path: &str) -> Result<String, ConfigError> {
-    let mut file = std::fs::File::open(path)?;
+    let mut file = File::open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     Ok(contents)
