@@ -50,3 +50,114 @@ The `main` function executes the following steps:
 
 The program demonstrates **memoization** caching the result of a calculation ( `SquareCalculator::compute` )
 to avoid recomputing it if the same input (`Key`) is seen again.
+
+
+------------------------------------------------------------------
+
+The program is a clean design demonstrating how to use traits, generics, and enums to build a cache in Rust.
+
+Here's a quick summary and a few thoughts on your example:
+
+---
+
+### What code demonstrates well:
+
+* **Trait with associated types:** 
+    `Cacheable` defines `Key` and `Value` with required traits and a computation function.
+
+* **CacheResult enum:** 
+    Differentiates cache hits and misses clearly, carrying values or keys appropriately.
+
+* **Generics with constraints:** 
+    Proper bounds on `Key` (`Eq + Hash + Clone`) and `Value` (`Clone`) enable caching logic without 
+    ownership issues.
+
+* **PhantomData usage:** 
+    Marks the type parameter `T` for the cache without storing an actual value.
+
+* **Safe borrowing and ownership:** 
+    `get_or_compute` returns owned values (cloned) to avoid dangling references.
+
+* **Reusability:** 
+    The `Cache` can work with any `Cacheable` type.
+
+* **Utility function:** 
+    `print_cache_result` cleanly formats output.
+
+* **Concrete implementation:** 
+    SquareCalculator` nicely demonstrates usage with a simple squared number computation.
+
+---
+
+### Just a few points/ideas:
+
+1. **Cloning values:**
+
+   * The design clones values both when returning hits and when inserting computed values. 
+     This is necessary because the `CacheResult` returns owned values, not references, avoiding lifetime 
+     issues.
+
+   * For large values, cloning could be expensive. One could return references instead with careful lifetime 
+     management, but that complicates the API.
+
+2. **Return type of `get_or_compute`:**
+
+   * Returning owned values (`CacheResult<T::Value, T::Key>`) makes the API simple to use but less efficient
+     if cloning is expensive.
+
+   * If you want to optimize, you could consider returning references (`&T::Value`) for hits and owned keys 
+     for misses, but this requires juggling lifetimes carefully.
+
+3. **Cache eviction / size limits:**
+
+   * Your cache grows indefinitely as there is no eviction. This is fine for demonstration, but production 
+     caches often need max size or TTL.
+
+4. **Thread safety:**
+
+   * Your cache is not thread-safe (`HashMap` not synchronized). For concurrency, you might want to wrap it 
+     in a `Mutex` or use a concurrent map crate.
+
+---
+
+### Here’s a concise explanation:
+
+```rust
+// Cacheable trait defines key-value computation contract.
+pub trait Cacheable {
+    type Key: Eq + Hash + Clone;
+    type Value: Clone;
+    fn compute(key: &Self::Key) -> Self::Value;
+}
+
+// CacheResult enum captures hit or miss outcomes.
+pub enum CacheResult<V, K> {
+    Hit(V),
+    Miss(K),
+}
+
+// Cache stores computed values and returns CacheResults.
+pub struct Cache<T: Cacheable> {
+    store: HashMap<T::Key, T::Value>,
+    _marker: PhantomData<T>,
+}
+
+impl<T: Cacheable> Cache<T> {
+    pub fn new() -> Self { ... }
+
+    pub fn get_or_compute(&mut self, key: T::Key) -> CacheResult<T::Value, T::Key> { ... }
+
+    pub fn get(&self, key: &T::Key) -> Option<&T::Value> { ... }
+}
+```
+
+---
+
+If you want, I can help you evolve this example to support:
+
+* Returning references for hits (with lifetimes).
+* Adding cache eviction strategies.
+* Making it thread-safe.
+* More complex `Cacheable` implementations.
+
+Just let me know! Otherwise, this example looks great as a teaching tool for generic cache design in Rust.
