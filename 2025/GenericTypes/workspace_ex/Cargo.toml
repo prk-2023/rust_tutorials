@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["generics_ex", "generics_usecases"]
