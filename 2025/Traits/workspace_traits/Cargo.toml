@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["trait_ex1", "trait_ex2", "trait_ex3", "trait_ex4", "trait_ex5"]
