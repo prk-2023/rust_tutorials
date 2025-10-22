@@ -1,6 +1,53 @@
 # References and Lifetimes:
 
 
+Lifetimes are another kind of **generic**, rather then ensuring that a type has a behaviour we want,
+lifetimes ensure that references are valid as long as we need them to be. 
+
+Most of the times lifetimes are implicit and inferred, just like types are inferred. We are only required to
+annotate types when multiple types are possible. Similarly we have to annotate lifetimes when the lifetimes
+of references could be related in a few different ways. 
+
+==> Rust requires us to **annotate the relationship using generic lifetime parameter** this is to ensure the
+actual references used at runtime will definitely be valid.
+
+## Borrow Checker: 
+
+Rust compiler has a *borrow Checker* which compares scope to determine whether all borrows are valid. 
+```rust
+fn main() {
+    let r;                // ---------+-- 'a
+                          //          |
+    {                     //          |
+        let x = 5;        // -+-- 'b  |
+        r = &x;           //  |       |
+    }                     // -+       |
+                          //          |
+    println!("r: {r}");   //          |
+}                         // ---------+
+
+```
+- the code annotated the lifetime of `r` with `'a` and the lifetime of `x` with `'b`. 
+  The inner `'b` block is much smaller than the outer `'a` lifetime block. 
+  At compile time, Rust compares the size of the two lifetimes and sees that `r` has a lifetime of `'a` but
+  that it refers to memory with a lifetime of `'b`. 
+  The program is rejected because `'b` is shorter than `'a`: the subject of the reference doesn’t live as long 
+  as the reference.
+
+Fixed code:
+```rust 
+fn main() {
+    let x = 5;            // ----------+-- 'b
+                          //           |
+    let r = &x;           // --+-- 'a  |
+                          //   |       |
+    println!("r: {r}");   //   |       |
+                          // --+       |
+}                         // ----------+
+```
+- `x` has lifetime `'b` which in this case is larger then `'a` ==> `r` can reference `x` because rust knows
+  that the reference in `r` will always be valid while `x` is valid.
+
 ## Validating References with Lifetimes — A Tutorial
 
 ---
@@ -634,4 +681,145 @@ You’ve now worked through lifetime annotations for:
 * Methods operating on those structs
 
 ---
+
+
+## Lifetime Elision Rules :
+
+Elision Rules are set of Implicit Rules that the compiler uses to automatically infer lifetime annotations,
+making code cleaner and easier to write. This applies when the programmer doesn't explicitly provide a
+lifetime, allowing the compiler to add them in common scenario for function signature and references. 
+
+### How Elision rules work:
+
+The Elision Rules are applied by the compiler to **function parameters** and **return types** to infer 
+lifetimes in a few common cases:
+
+- **Unique input lifetimes**: If there is exactly one input lifetime, that lifetime is assigned to all
+  elided output lifetimes. 
+
+- Multiple input lifetimes: If there are multiple input lifetimes, but one of them is `&self` or  
+  `&mut self`, the lifetime of `self` is assigned to all elided output lifetimes. 
+
+- No output lifetime: If the function does not return a reference, there is no output lifetime to elide. 
+
+Ex: Without Elision:
+
+```rust 
+fn annotated_input<'a> (x: &'a i32) {
+    println!("annoted_input : {} ", x);
+}
+```
+ With Elision: the compiler infers a lifetime for &i32 and adds it automatically, resulting in the same
+ signature as the annotated version:
+
+ ```rust 
+ fn elided_input(x: i32) {
+    println!("annoted_input : {} ", x);
+ }
+ ```
+ 
+ This reduced boilerplate, Improves readability, and Ensure correctness.
+
+ Recap:
+
+ In function signature Rust can automatically infer lifetimes in many common cases called as Elision Rules: 
+
+ - Each part that's a reference gets its own lifetime parameter. 
+ - If there is only one input lifetime, it is assigned to all output references.
+ - If there are multiple input lifetimes, but one of them is `&self` or `&mut self` that lifetime is
+   assigned to all output references. 
+
+example:
+
+```rust 
+#[derive(Debug)]
+struct Book<'a> {
+    title: &'a str,
+    author: &'a str,
+}
+
+#[derive(Debug)]
+struct Library<'a> {
+    books: Vec<Book<'a>>,
+}
+
+impl<'a> Library<'a> {
+    fn new() -> Self {
+        Library { books: Vec::new() }
+    }
+
+    fn add_book(&mut self, title: &'a str, author: &'a str) {
+        let book = Book { title, author };
+        self.books.push(book);
+    }
+
+    // This function returns the book with the longer title
+    fn book_with_longer_title<'b>(&'b self, b1: &'b Book<'a>, b2: &'b Book<'a>) -> &'b Book<'a> {
+        if b1.title.len() >= b2.title.len() {
+            b1
+        } else {
+            b2
+        }
+    }
+}
+
+fn main() {
+    let title1 = String::from("The Rust Programming Language");
+    let author1 = String::from("Steve Klabnik and Carol Nichols");
+
+    let title2 = String::from("Rust in Action");
+    let author2 = String::from("Tim McNamara");
+
+    // Titles and authors must live long enough for the library to borrow them
+    let mut library = Library::new();
+
+    library.add_book(&title1, &author1);
+    library.add_book(&title2, &author2);
+
+    let book1 = &library.books[0];
+    let book2 = &library.books[1];
+
+    let longer_title_book = library.book_with_longer_title(book1, book2);
+
+    println!("Book with the longer title: {:?}", longer_title_book);
+}
+```
+- **Book<'a>** : The `'a` lifetime means the `title` and `author` must live as long as the struct is alive.
+```rust 
+struct Book<'a> {
+    title: &'a str,
+    author: &'a str,
+}
+```
+
+- **Library<'a>** : Holds `Vec<Book<'a>`, so all books borrow strings that live at least as long as `'a`. 
+
+- **fn book_with_longer_title<'b>** : Here we have another lifetime `'b` for the function's arguments, which
+  must be valid as long as `'a` ( inpractice: `'b`: `'a` must hold if `'b` is longer )
+
+- **No Elision in Struct**: Rust does not apply lifetime elision to struct fields. (Lifetime must be explicit)
+
+- **Elison in `add_book` method**: 
+
+    `fn add_book( &mut self, title: &'a str, author: &'a str)`
+
+    Lifetime is needed as `self` is mutably borrowing `self.book` and input need to match the `'a` lifetime
+    of the struct.
+
+
+=> Elision Rules are applied to **functions signature** ( that includes parameters and return type) and not
+directly to **struct fields**.
+
+=> **Struct Field Lifetimes**: Every reference (&T) used as a field within a struct must have an explicit 
+   lifetime parameter. This lifetime parameter must also be declared on the struct itself.
+   ```rust
+        struct Example<'a> {
+            // The reference `name` borrows its data for the lifetime 'a.
+            name: &'a str,
+            // The reference `data` also borrows for the lifetime 'a.
+            data: &'a [u8],
+            // Non-reference fields don't need lifetime parameters.
+            id: u32,
+        }
+   ```
 
