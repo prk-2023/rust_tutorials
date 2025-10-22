@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["auto_testing1", "auto_testing2"]
