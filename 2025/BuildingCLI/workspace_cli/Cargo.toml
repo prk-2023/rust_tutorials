@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = [ "read_file","std_env_args"]
