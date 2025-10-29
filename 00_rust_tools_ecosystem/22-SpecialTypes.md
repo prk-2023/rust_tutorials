@@ -319,3 +319,44 @@ Argument 2: world
 * You can loop through the iterator to access each argument, or collect them into a vector for easier access.
 * An iterator is a tool that allows you to process each item in a collection one by one, without needing to manually access each item by its index.
 
+- An Iterator type is a similar to list with methods defined on the type that help to iterate over the
+  elements that make up a collection. 
+=> Iterator allows to traversal over a sequence of items.
+=> The fundamental method is `next()` which return `Option<Item>`:`Some(Value)` for the next item or `None`
+   when the sequence is exhausted.
+
+Note: Iterator comes from collection , the iterator itself is **not the collection** ( or a list)
+- Collection (e.g: `Vec`, `HashMap`, a `String`) is the **data Structure** that holds the items.
+- The **iterator** is separate **structure** that keeps track of the **current position** and defines the
+  logic for producing the next item.
+
+A better way to think is:
+    An Iterator types is a **state machine** ( of a cursor/pointer) that manages the process of moving
+    through the items of a collection.
+
+This distinction is important :
+1. A collection can offer **multiple, independent iterators** at the same time.
+2. The iterator abstracts away the complexity of the underlying collection, Ex: iterating over a tree struct
+   (like `BTreeMap`) uses a complex iterator logicm even thought the final output is a simple sequence.
+
+#### The Iterator Trait:
+
+In Rust, the iterator concept is formalized by the  `Iterator` trait:
+
+```rust 
+pub trait Iterator {
+    // The type of the items yielded by the iterator.
+    type Item; 
+
+    // The single mandatory method
+    fn next(&mut self) -> Option<Self::Item>; 
+
+    // Numerous other "adapter" methods (map, filter, fold, skip, etc.)
+    // ...
+}
+```
+=> Any type that implements the **Iterator trait** *must* define the `Item type` and the `next()` method, 
+   making it an official iterator.
+
+
+
