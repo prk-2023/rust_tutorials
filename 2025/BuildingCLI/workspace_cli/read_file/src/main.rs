@@ -43,12 +43,23 @@ struct Config {
     query: String,
     file_path: String,
 }
+// If we with to use reference then oweners we have to redefine the struct with string slice and
+// add lifetimes are reference are involved to let the compiler inform how long the referenced are
+// valid.
+// struct Config<'a> {
+//  //both fields will now hold references with lifetime 'a
+//  query: &'a str,
+//  file_path: &'a str,
+//
+// }
 #[allow(dead_code)]
 impl Config {
     fn new(args: &[String]) -> Config {
         if args.len() < 3 {
             panic!(" !QQ! Not enough Arguments!");
         }
+        // if we wish to replace clone(), then we have to use other commented Config struct with
+        // lifetimes as reference are involved in which lifetime notation case changes are required
         let query = args[1].clone();
         let file_path = args[2].clone();
         Config { query, file_path }
@@ -56,10 +67,12 @@ impl Config {
     //or use the below method if you prefer a Return result
     fn build(args: &[String]) -> Result<Config, &'static str> {
         if args.len() < 3 {
-            panic!(" !QQ! Not enough Arguments!");
+            //panic!(" !QQ! Not enough Arguments!");
+            return Err(" !QQ! Not enough Arguments!");
         }
         let query = args[1].clone();
         let file_path = args[2].clone();
+
         Ok(Config { query, file_path })
     }
 }
