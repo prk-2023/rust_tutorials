@@ -64,13 +64,13 @@ fn main() {
 
     // Separate and validate command line arguments
     let config = Config::build(&args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments : {err}");
+        eprintln!("Problem parsing arguments : {err}");
         process::exit(1);
     });
 
     // file open, and read file and search the pattern ( search implemented in lib.rs)
     if let Err(e) = run(config) {
-        println!("Application Error!!! : {e}");
+        eprintln!("Application Error!!! : {e}");
         process::exit(1);
     }
 }
