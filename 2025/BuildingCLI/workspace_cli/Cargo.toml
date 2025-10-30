@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = [ "playlist_gen", "read_file","std_env_args"]
+members = ["minigrep", "playlist_gen", "read_file","std_env_args"]
