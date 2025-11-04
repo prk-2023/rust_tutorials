@@ -1,6 +1,5 @@
 # Closures:
 
-
 A function like construct that can store in a variable. Mastering Closures helps in writing Idiomatic rust
 code faster.
 
@@ -36,6 +35,39 @@ Rust has three types of closures based on how they capture variables from their 
 1. **By reference (`&T`)**: The closure borrows a reference to the variable.
 2. **By mutable reference (`&mut T`)**: The closure borrows a mutable reference to the variable.
 3. **By value (`T`)**: The closure takes ownership of the variable.
+
+- Below we can see that rust closures borrow variables from its surroundings.
+- They also infer the type of parameters and return values (though rust is statically-typed language) it
+  still has stricter type checking( if required you can also annotate types).
+- Rust Closure can borrow variables from environment or take ownership, depending on how they are defined.
+  This behavior is governed by Rust strict ownership and borrowing rules. Ex: Closure can borrow a value
+  immutable or it can take ownership of the value.
+
+  ```rust 
+    let s = String::from("hello rust");
+    let take_ownership = move || {println!{"",s}; //takes ownership of s};
+    take_ownership();
+    //println!{"{}",s};  <== this should cause compilation error because 's' has moved
+  ```
+  'move': is the keyword which takes ownership of all variables it takes from its surrounding scope, in the
+  above example it variable 's'.
+
+- Function Signature and Return types: Return types of closure can be inferred or can be specified
+  explicitly. 
+
+- **Closure are also types in themselves in rust (like `Fn`, `FnMut` or `FnOnce`) which represent
+  different kinds of callable objects based on how they capture variables.
+  These are un-nameable concrete types, and the traits listed (Fn, FnMut, FnOnce) are how Rust categorizes 
+  these concrete closure types based on how they interact with the variables they capture.
+
+- Closure Traits Explained: Fn, FnMut, and FnOnce are collectively known as the Function Traits. They define
+  what a closure can do with the captured variables:
+
+| Trait | Capture type | behavior | Analogy |
+| :---  | :---         | :---     | :---    |
+| Fn | Captures by immutable reference (&T).|Can be called multiple times. It only reads the captured data.| A librarian who only reads the book but doesn't write in it.|
+| FnMut| Captures by mutable reference (&mut T)|Can be called multiple times and mutates the captured data.|A note-taker who can update the shared document.|
+| FnOnce|Captures by value (takes ownership - T)|Can be called only once because it consumes the captured data|A cook who uses (consumes) the ingredients to make a single meal|
 
 ### **Example 1: Simple Closure**
 
@@ -198,9 +230,27 @@ its low-level behavior is efficient and safe for multiple accesses.
 
 **2. By mutable reference (`&mut T`)**:
 - The closure borrows the variable mutably  
-- The original variable cannot be used while the closure exists
+- The original variable cannot be used while the closure exists ( i.e borrowing is active )
 - Uses `FnMut` trait
-- Requires the closure to be declared as `mut`
+- Requires the closure to be declared as `mut`. 
+  The variable holding the closure needs to be declared as `mut` if you intend to call the closure multiple 
+  times (i.e., if it implements `FnMut`). However, the closure itself doesn't need a `mut` keyword in its 
+  definition.
+  ```rust 
+      let mut num = 5;
+
+      // The closure mutably borrows `num`. It implements FnMut.
+      let mut increment = || { // The closure definition itself has no `mut` keyword
+          num += 1;
+      };
+
+      // The variable holding the closure (`increment`) MUST be `mut`
+      // because calling it changes its internal captured state (`num`).
+      increment(); 
+      increment(); 
+
+      println!("{}", num); // Output: 7
+  ```
 
 **3. By value (`T`)**:
 - The closure takes ownership of the variable using the `move` keyword
