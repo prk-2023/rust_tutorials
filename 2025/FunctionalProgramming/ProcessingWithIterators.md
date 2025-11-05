@@ -15,7 +15,7 @@ use it up. Example:
 
     let v1_iter = v1.iter();
 ```
-The method `iter()`  returns an iterator tat once created can be used in  many ways:
+The method `iter()`  returns an iterator that once created can be used in  many ways:
 - Iterate over an array using a `for` loop to execute some code on each item.
 ```rust 
     fn main() {
@@ -74,6 +74,36 @@ mod tests {
         assert_eq!(v1_iter.next(), Some(&2));
         assert_eq!(v1_iter.next(), Some(&3));
         assert_eq!(v1_iter.next(), None);
+    }
+}
+```
+The above code consumes up the iterator, with each `next()` eats up an item from the iterator.
+
+### Methods that Consume the iterator:
+
+The `Iterator` trait has  number of different traits with default implementations provided by the standard
+library API documentation for the `Iterator` trait. Some of these methods call the `next` method in their
+definition, which is why you're required to implement the `next` method when implementing the `Iterator`
+trait.
+
+=> Methods that take ownership of the iterator and iterates through the items by repeatedly calling `next`,
+thus consuming the iterator. As it iterates through, it adds each item to a running total and return the
+total and return the total when iterator is complete:
+
+Test Illustration that use  of the `sum` method.
+
+```rust 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn iterator_sum() {
+        let v1 = vec![1,2,3]
+
+        let v1_ter = v1.iter();
+
+        let total: i32 = v1_iter.sum()
+
+        assert_eq!(totalm, 6);
     }
 }
 ```
