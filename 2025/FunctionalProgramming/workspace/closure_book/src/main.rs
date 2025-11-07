@@ -2,6 +2,8 @@
 // user-provided PID or falls back to the current process's PID.
 use nix::unistd::{getpid, Pid};
 use std::fmt;
+
+#[allow(dead_code)]
 // Custom type to represent a process management action
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum PidAction {
@@ -16,6 +18,7 @@ impl fmt::Display for PidAction {
     }
 }
 
+#[allow(dead_code)]
 struct PidManager {
     // In a real system, this might track a list of managed PIDs
     // but here it's just a placeholder to keep the structure similar.

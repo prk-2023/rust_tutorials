@@ -107,5 +107,28 @@ mod tests {
     }
 }
 ```
+## comparing Performance: Loops vs Iterators:
 
+The two implementations seems to have same performance.
+WRT to the book a benchmarking test show the comparison to be identical:
 
+Rust code using iterators compiles to same assembly if you would have written by hand. 
+Optimizations such as loop unrolling and eliminating bounds checking on array access apply and make the 
+resultant code extremely efficient. 
+
+==> you can use iterators and closures without fear! They make code seem like it’s higher level but don’t 
+    impose a runtime performance penalty for doing so.
+
+In general: iterators, although a high-level abstraction, get compiled down to roughly the same code as if 
+you’d written the lower-level code yourself. 
+
+Iterators are one of Rust’s zero-cost abstractions, by which we mean that using the abstraction imposes no 
+additional runtime overhead. 
+
+## Summary:
+
+Closures and iterators are Rust features inspired by Functional programming language ideas. They contribute
+to Rust's capability to clearly express high-level ideas at low-level performance. 
+
+The implementation of Closures and Iterators are such that runtime performance is not affected. This is part
+of Rust's goal to strive to provide zero-cost abstraction.
