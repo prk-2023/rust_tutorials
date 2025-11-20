@@ -4,6 +4,12 @@ use trpl::Html;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
+    if args.len() < 2 {
+        println!("Missing arguments:");
+        println!("Usage: web_scraper <url>, (make sure to include http or https)");
+        std::process::exit(-1);
+    }
+
     trpl::run(async {
         let url = &args[1];
         match get_page_title(url).await {
