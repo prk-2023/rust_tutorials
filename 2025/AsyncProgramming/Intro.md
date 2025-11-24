@@ -529,4 +529,432 @@ and use async runtimes.
 
 ----------------------------------------------------------------------------------------------------
 
+# Rust's Out of the box Async features  ( With out external Crates ):
+
+
+Rust’s standard library **does not include a full async runtime**, but it *does* provide the core language 
+features needed for asynchronous programming. 
+
+Without using **any external crates**, here’s what Rust gives you **out of the box**:
+
+
+## 1. `async` / `await` keywords
+
+You can write asynchronous functions and block on futures using `async` and `await`.
+
+```rust
+async fn do_something() -> u32 {
+    42
+}
+```
+
+But:
+=> You **cannot run** this async function without some executor (the std library does *not* include one).
+
+
+## 2. The `Future` trait (in `core` / `std`)
+
+Rust defines the core trait behind all *async* work:
+
+```rust
+pub trait Future {
+    type Output;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output>;
+}
+```
+
+Every `async fn` returns a type implementing `Future`.
+
+## 3. `Poll`, `Context`, and `Waker`
+
+These are the low-level building blocks:
+
+* `Poll::Pending` / `Poll::Ready`
+* `Context` provides a reference to a `Waker`
+* `Waker` tells the executor when a task is ready to be polled again
+
+These allow you to build your own async executor manually.
+
+## 4. `Pin`
+
+Async tasks often contain self-referential state, so Rust requires `Pin` to ensure memory safety.
+
+```rust
+Pin<&mut T>
+```
+
+The async machinery depends heavily on this.
+
+## 5. Basic concurrency primitives
+
+Rust gives you some concurrency tools that can be used in simple async executors:
+
+### Threading
+
+```rust
+std::thread::spawn(|| { ... });
+```
+
+### Channels (multi-producer, single-consumer)
+
+```rust
+std::sync::mpsc::channel();
+```
+
+### Atomics
+
+```rust
+std::sync::atomic::*;
+```
+
+### Mutex / RwLock / Condvar
+
+Useful if you’re building your own executor:
+
+```rust
+std::sync::{Mutex, Arc};
+```
+
+## What the standard library *does NOT* provide
+
+Rust **does not include**:
+
+🚫 An async runtime
+🚫 An executor (like `tokio::spawn` or `async-std`)
+🚫 Async I/O (async TCP, async file I/O, timers, etc.)
+🚫 Async synchronization primitives (async Mutex, async channels, etc.)
+
+To actually *run* async tasks, you must either:
+
+* **Write your own mini‐executor**
+* **Use a runtime crate like `tokio`, `async-std`, or `smol`**
+
+## Minimal example: tiny executor without external crates
+
+```rust
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
+
+fn dummy_waker() -> Waker {
+    fn no_op(_: *const ()) {}
+    fn clone(_: *const ()) -> RawWaker { raw_waker() }
+
+    fn raw_waker() -> RawWaker {
+        RawWaker::new(std::ptr::null(), &RawWakerVTable::new(clone, no_op, no_op, no_op))
+    }
+
+    unsafe { Waker::from_raw(raw_waker()) }
+}
+
+fn block_on<F: Future>(mut future: F) -> F::Output {
+    let waker = dummy_waker();
+    let mut context = Context::from_waker(&waker);
+    let mut future = unsafe { Pin::new_unchecked(&mut future) };
+
+    loop {
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(val) => return val,
+            Poll::Pending => continue,
+        }
+    }
+}
+
+async fn hello() -> i32 {
+    10
+}
+
+fn main() {
+    let result = block_on(hello());
+    println!("Result: {}", result);
+}
+```
+
+---
+
+## Summary: What Rust offers (no crates)
+
+| Feature                    | Provided? | Notes                                 |
+| -------------------------- | --------- | ------------------------------------- |
+| `async`/`await` syntax     | ✅         | Built into language                   |
+| `Future` trait             | ✅         | In `core`/`std`                       |
+| `Poll`, `Waker`, `Context` | ✅         | Needed to build executors             |
+| `Pin`                      | ✅         | Safe async state                      |
+| Async I/O                  | ❌         | Needs crates (tokio, async-std, etc.) |
+| Task executor              | ❌         | You must write your own               |
+| Async Mutex / channel      | ❌         | Only sync versions provided           |
+
+---
+
+# How to write a **simple single-thread async executor** (Example)
+
+
+Examples **written entirely with the Rust standard library**, with **no external crates**, showing:
+
+- **A simple single-thread async executor**
+- **A minimal async TCP server using non-blocking sockets + custom futures**
+
+These examples are intentionally simple and educational; production executors use far more sophisticated mechanisms.
+
+---
+
+## 1. A Simple Single-Thread Async Executor (No Crates)
+
+This executor:
+
+* Holds a queue of tasks
+* Polls each task until completion
+* Uses a dummy waker that immediately requeues the task
+* Runs everything on one thread
+
+### Complete Example: Minimal executor
+
+```rust
+use std::future::Future;
+use std::task::{Context, Poll, Waker, RawWaker, RawWakerVTable};
+use std::pin::Pin;
+use std::collections::VecDeque;
+
+// ---- Dummy waker for single-thread executor ----
+
+fn dummy_raw_waker() -> RawWaker {
+    fn clone(_: *const ()) -> RawWaker { dummy_raw_waker() }
+    fn wake(_: *const ()) {}
+    fn wake_by_ref(_: *const ()) {}
+    fn drop(_: *const ()) {}
+    RawWaker::new(std::ptr::null(), &RawWakerVTable::new(clone, wake, wake_by_ref, drop))
+}
+
+fn dummy_waker() -> Waker {
+    unsafe { Waker::from_raw(dummy_raw_waker()) }
+}
+
+// ---- Task wrapper ----
+
+struct Task {
+    future: Pin<Box<dyn Future<Output = ()>>>,
+}
+
+impl Task {
+    fn new<F: Future<Output = ()> + 'static>(f: F) -> Self {
+        Self {
+            future: Box::pin(f),
+        }
+    }
+}
+
+// ---- Simple Executor ----
+
+struct Executor {
+    tasks: VecDeque<Task>,
+}
+
+impl Executor {
+    fn new() -> Self {
+        Self { tasks: VecDeque::new() }
+    }
+
+    fn spawn<F: Future<Output = ()> + 'static>(&mut self, future: F) {
+        self.tasks.push_back(Task::new(future));
+    }
+
+    fn run(&mut self) {
+        let waker = dummy_waker();
+        let mut cx = Context::from_waker(&waker);
+
+        while let Some(mut task) = self.tasks.pop_front() {
+            match task.future.as_mut().poll(&mut cx) {
+                Poll::Pending => {
+                    // Not ready yet; requeue the task
+                    self.tasks.push_back(task);
+                }
+                Poll::Ready(()) => {
+                    // Task finished; drop it
+                }
+            }
+        }
+    }
+}
+
+// ---- Example async function ----
+
+async fn example() {
+    println!("Hello from async executor!");
+}
+
+// ---- Main ----
+
+fn main() {
+    let mut ex = Executor::new();
+    ex.spawn(example());
+    ex.run();
+}
+```
+
+This is a fully functional single-thread async executor.
+It does *not* support async I/O, timers, or waking — yet.
+We add that in part 2.
+
+---
+
+## 2. Async TCP Server Using Only `std` (non-blocking sockets + custom Future)
+
+Since Rust’s standard library has **no async networking**, we must:
+
+* Put the TCP listener/socket into **non-blocking mode**
+* Attempt reads/writes that may return `WouldBlock`
+* Return `Poll::Pending` when blocked
+* Implement a `Future` for each type of operation
+
+This will demonstrate the core principles of async I/O without any crates.
+
+---
+
+### Step 1 — Non-blocking TCP Listener Future
+
+This future completes when a new TCP connection arrives.
+
+```rust
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use std::io::{self, ErrorKind};
+use std::net::{TcpListener, TcpStream};
+
+struct AcceptFuture<'a> {
+    listener: &'a TcpListener,
+}
+
+impl<'a> Future for AcceptFuture<'a> {
+    type Output = io::Result<TcpStream>;
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.listener.accept() {
+            Ok((stream, _addr)) => Poll::Ready(Ok(stream)),
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => Poll::Pending,
+            Err(e) => Poll::Ready(Err(e)),
+        }
+    }
+}
+```
+
+---
+
+### Step 2 — Non-blocking read future
+
+```rust
+struct ReadFuture<'a> {
+    stream: &'a TcpStream,
+    buf: &'a mut [u8],
+}
+
+impl<'a> Future for ReadFuture<'a> {
+    type Output = io::Result<usize>;
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.stream.read(self.buf) {
+            Ok(n) => Poll::Ready(Ok(n)),
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => Poll::Pending,
+            Err(e) => Poll::Ready(Err(e)),
+        }
+    }
+}
+```
+
+---
+
+### Step 3 — Non-blocking write future
+
+```rust
+struct WriteFuture<'a> {
+    stream: &'a TcpStream,
+    buf: &'a [u8],
+}
+
+impl<'a> Future for WriteFuture<'a> {
+    type Output = io::Result<usize>;
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.stream.write(self.buf) {
+            Ok(n) => Poll::Ready(Ok(n)),
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock => Poll::Pending,
+            Err(e) => Poll::Ready(Err(e)),
+        }
+    }
+}
+```
+
+---
+
+### Step 4 — Async connection handler
+
+```rust
+async fn handle_client(mut stream: TcpStream) {
+    use std::io::Write;
+    stream.write_all(b"Hello from async server!\n").unwrap();
+
+    let mut buf = [0u8; 512];
+
+    loop {
+        let n = ReadFuture { stream: &stream, buf: &mut buf }.await.unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Echo back
+        WriteFuture { stream: &stream, buf: &buf[..n] }.await.unwrap();
+    }
+}
+```
+
+---
+
+### Step 5 — Async TCP server using our executor
+
+```rust
+async fn server() {
+    let listener = TcpListener::bind("127.0.0.1:9000").unwrap();
+    listener.set_nonblocking(true).unwrap();
+
+    loop {
+        if let Ok(stream) = AcceptFuture { listener: &listener }.await {
+            stream.set_nonblocking(true).unwrap();
+            // Spawn handler task
+            EXECUTOR.with(|ex| {
+                ex.borrow_mut().spawn(handle_client(stream));
+            });
+        }
+    }
+}
+```
+
+Note: `EXECUTOR` could be a thread-local reference to our single-thread executor.
+
+### Final `main` function
+
+```rust
+fn main() {
+    let mut ex = Executor::new();
+    ex.spawn(server());
+    ex.run();
+}
+```
+
+This covers:
+✔ Writing an async executor from scratch
+✔ Implementing async I/O by hand
+✔ How `Future`, `Poll`, `Waker`, and non-blocking sockets interact
+✔ No external crates required
+
+However — this is *not production-ready*.
+It lacks:
+
+* real waker notifications
+* epoll/kqueue/iocp integration
+* timers
+* backpressure
+* thread pool
+* async cancellation
+
+Those are exactly what big runtimes like **Tokio**, **async-std**, and **smol** provide.
 
