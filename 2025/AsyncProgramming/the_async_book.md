@@ -16,11 +16,12 @@ Async programming is a way to achieve concurrency in a program without relying o
 multi-threading or creating a new OS thread for each concurrency task.
 
 ### - Concurrency: 
+
   It Refers to the ability of a program to manage multiple tasks at once, but necessarily
   executing them simultaneously. It's got to do more about structuring your program in such a way that it
-  can handle many things at once, without the running them in parallel ( as done in threads based approach).
+  can handle many things at once, without running them in parallel ( as done in threads based approach).
 
-  Concurrency in async is achieved by allowing to switch between tasks during "idle" time, like waiting for
+  Concurrency in *async* is achieved by allowing to switch between tasks during "idle" time, like waiting for
   I/O to complete, or waiting for response. ( file read, network requests ..). This is done by
   * using Non-Blocking calls and 
   * event loop.
@@ -46,6 +47,17 @@ operations to finish (reading from a file, sending/receiving data over the netwo
   tasks that are waiting (such as I/O bound tasks) and switch between them without blocking the main
   program. When One task is waiting ( ex: network data) the event loop moves on to run the next ready task.
 
+---
+Note: Event-Loop: 
+A programming construct that continuously monitors for and responds to events or messages. 
+It is a core mechanism in event-driven programming, allowing a program to perform non-blocking  operations
+and handle multiple tasks concurrently, even if it runs on a single execution thread.
+
+Event-Loop operates as an infinite loop that manages and orchestrates tasks using several key components:-
+
+Call Stacks(LIFO) , Event Queue/Callback Queue (FIFO), Web APIs and background processes.
+
+---
 - **Futures and Tasks**: 
     They are basic building blocks in async programming **future** and **task**.
     * **$Futures$** : represent a computation that will eventually produce a result, but it's not ready yet.
@@ -181,7 +193,7 @@ parallelism and concurrency, control flow, scheduling and so forth ). => Async p
 as well as ergonomic for many uses. 
 Async also has a concept called cancellation and supports many different flavours of concurrency (expressed
 using constructs including `spawn` and its variations `join`, `select`, `for_each_concurrent` ..) These
-allow composable and reusable implementations of concepts like timeouts, pauses and throttling.
+allow composeble and reusable implementations of concepts like timeouts, pauses and throttling.
 
 In Short Async programming allows you to achieve concurrency without the overhead of managing multiple
 threads, making the program more efficient and optimal usage of CPU, achieving high level of concurrency in
@@ -303,7 +315,7 @@ async fn example() {
 }
 ```
 
-- An asynchronous function doesn’t immediately return its result. 
+- An asynchronous function does not immediately return its result. 
 - Instead, it returns a **future** — a type that represents a value that will eventually be computed. 
 - So when you call an async function, you don’t get the result right away. Instead, you get a **future** 
   that can be awaited.
@@ -760,12 +772,148 @@ async fn main() {
     }
 }
 ```
+- `future::future::select_all` is being used to wait for tasks to finish in the order they complete.
+- `tokio::spawn` is used to run async tasks concurrently.
+- TODO: Can use `unwrap_or_else` or `Result` to handle error more robustly
 
 ### Exercise 3: Join results
 
 Spawn two async tasks that return numbers. Await their JoinHandles and print their sum.
+```rust  
+use rand::Rng;
+use tokio::spawn;
+
+// Function to generate a random number
+async fn random_number() -> Result<u32, String> {
+    let mut rng = rand::thread_rng();
+    // Simulating a potential error with a 10% chance of failure
+    if rng.gen_bool(0.1) {
+        Err("Failed to generate random number".to_string())
+    } else {
+        Ok(rng.gen_range(0..100)) // Returns a random number between 0 and 99
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    // Spawn two tasks that each return a random number with error handling
+    let handle1 = spawn(async {
+        random_number().await.unwrap_or_else(|e| {
+            println!("Error in task 1: {}", e);
+            0 // Return 0 in case of error
+        })
+    });
+
+    let handle2 = spawn(async {
+        random_number().await.unwrap_or_else(|e| {
+            println!("Error in task 2: {}", e);
+            0 // Return 0 in case of error
+        })
+    });
+
+    // Await the tasks and get the results
+    let result1 = handle1.await.unwrap(); // Unwrap the result of task 1
+    let result2 = handle2.await.unwrap(); // Unwrap the result of task 2
+
+    // Calculate the sum of the random numbers and print it
+    let sum = result1 + result2;
+    println!("Random number 1: {}", result1);
+    println!("Random number 2: {}", result2);
+    println!("The sum of the random numbers is: {}", sum);
+}
+```
+- `tokio::spwan` to generates two async tasks ( each task get randown number )
+- both tasks are spawned concurrently ==> they run in parallel, each task generates a randon number. 
+- `await` await for the completion of each task using `.await` on the `JoinHandle` returned by `tokio::spawn` 
+  This gives the result of the task.
+- Inside the `spawn` tasks, we use `unwrap_or_else` to handle error:
+  - If task completes successfully, random number is returned.
+  - If task encounters error prints error and returns 0 as fallback value.
+  - `unwrap_or_else` : method handles the Result by either unwrapping the `Ok` value or executing the 
+    closure provided for `Err`. closure, print the error and return a default value of 0.
+    This is better error handling.
 
 ### Exercise 4: Error propagation
 
 Write an async function that returns a `Result` and use `?` to handle errors.
-### Exer
+
+- `?` operator is used to propagate errors, it allows  you to return early from a function if an error 
+   occurs, and it automatically converts an error from one type into another if necessary 
+   (such as from Result<T, E> to Result<T, E2>).
+
+```rust 
+use rand::Rng;
+use tokio::spawn;
+use std::fmt;
+
+// Custom error type
+#[derive(Debug)]
+enum RandomNumberError {
+    GenerationError,
+}
+
+impl fmt::Display for RandomNumberError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Failed to generate random number")
+    }
+}
+
+// Async function that returns a Result and uses `?` to propagate errors
+async fn random_number() -> Result<u32, RandomNumberError> {
+    let mut rng = rand::thread_rng();
+    
+    // Simulate a failure with a 10% chance
+    if rng.gen_bool(0.1) {
+        return Err(RandomNumberError::GenerationError); // Return error if fails
+    }
+    
+    // Return a random number between 0 and 99
+    Ok(rng.gen_range(0..100))
+}
+
+#[tokio::main]
+async fn main() {
+    // Spawn two tasks that each return a random number, handling errors using `?`
+    let handle1 = spawn(async {
+        match random_number().await {
+            Ok(num) => num,
+            Err(e) => {
+                println!("Error in task 1: {}", e);
+                0 // Return default value 0 in case of error
+            }
+        }
+    });
+
+    let handle2 = spawn(async {
+        match random_number().await {
+            Ok(num) => num,
+            Err(e) => {
+                println!("Error in task 2: {}", e);
+                0 // Return default value 0 in case of error
+            }
+        }
+    });
+
+    // Await the tasks and get the results
+    let result1 = handle1.await.unwrap(); // Unwrap the result of task 1
+    let result2 = handle2.await.unwrap(); // Unwrap the result of task 2
+
+    // Calculate the sum of the random numbers and print it
+    let sum = result1 + result2;
+    println!("Random number 1: {}", result1);
+    println!("Random number 2: {}", result2);
+    println!("The sum of the random numbers is: {}", sum);
+}
+```
+- We have defined a custom error type `RandomNumberError` which has a variant `GenerationError` to simulate
+  an error during random number generation. We use error type for our `Result`.
+
+- `random_number` function returns a Result<u32, RandomNumberError>
+
+- If the random number generation fails we return an Err(RandomNumberError::GenerationError) and 0 on
+  success.
+
+- In `random_number` func, we use the `?` operator to propagate errors if the random number generation fails.
+  However, in the current setup, we handle errors directly inside the spawn tasks using `match`.
+
+
