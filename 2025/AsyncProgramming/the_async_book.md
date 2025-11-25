@@ -58,6 +58,9 @@ Event-Loop operates as an infinite loop that manages and orchestrates tasks usin
 Call Stacks(LIFO) , Event Queue/Callback Queue (FIFO), Web APIs and background processes.
 
 ---
+
+
+
 - **Futures and Tasks**: 
     They are basic building blocks in async programming **future** and **task**.
     * **$Futures$** : represent a computation that will eventually produce a result, but it's not ready yet.
@@ -96,6 +99,11 @@ Call Stacks(LIFO) , Event Queue/Callback Queue (FIFO), Web APIs and background p
     allowing other requests to be processed in the meantime. 
     The runtime efficiently switches between tasks, using very little overhead. 
     This allows the program handle many more requests with the same amount of resources.
+    So In Rust Async IO are handled by the async runtime( the scheduler is also part  of the runtime )
+    The task of doing IO requests IO from the runtime, the runtime requests IO from the OS but the OS 
+    returns control to the runtime. 
+    The runtime pauses the IO task and schedules other tasks to get work done. When the IO is done, the 
+    runtime wakes up the IO task so it can continue execution with the result of the IO.
 
 ### - Summary 
 
@@ -916,4 +924,838 @@ async fn main() {
 - In `random_number` func, we use the `?` operator to propagate errors if the random number generation fails.
   However, in the current setup, we handle errors directly inside the spawn tasks using `match`.
 
+---
 
+# Rust async Concepts:
+
+The **Rust async runtime** is a key when working with asynchronous code, as it handles the execution, 
+scheduling, and management of async tasks. 
+
+It provides the necessary functionality for efficiently performing I/O-bound operations without blocking the
+thread, and allows Rust to scale with limited resources (such as a few CPU cores) by handling many tasks 
+concurrently. 
+
+### 1. What is async in Rust?
+
+An async function allows the function to return a **future**, which represents a value that will be available
+at some point in the future. 
+
+Async functions are non-blocking, meaning they don't tie up a thread while waiting for something (like I/O 
+operations) to complete. 
+Instead, they return a `Future` that is polled by an executor (usually provided by a runtime).
+
+Example:
+
+```rust
+async fn do_something() -> i32 {
+    // Some async task
+    42
+}
+```
+
+The `do_something` function returns a `Future<i32>` instead of directly returning `i32`.
+
+### 2. The Role of the Runtime
+
+In Rust, async functions by themselves don’t actually perform any work unless they are executed within a 
+runtime. 
+
+The runtime's responsibility is to manage and execute tasks on the system, handle I/O, and ensure that the 
+correct tasks are executed at the right time.
+
+The runtime will:
+
+* Schedule tasks: decides which async task should be executed next based on the task's state and resource 
+                  availability (such as the CPU or I/O).
+
+* Manage async I/O: Interacts with the OS I/O APIs to manage non-blocking I/O operations (like networking or
+                  fs operations). This is key for scaling efficiently when dealing with many I/O-bound tasks.
+
+* Determine task execution on OS threads**: The runtime manages which tasks are executed on which threads. 
+                  Typically, multiple async tasks are handled by a smaller number of threads, and the 
+                  runtime decides how to distribute them.
+
+Examples of popular runtimes in Rust are:
+
+* Tokio: A full-featured async runtime for Rust, which handles both I/O operations and tasks scheduling.
+* async-std ( replaced with smol): A simpler, more lightweight async runtime inspired by the standard library’s synchronous APIs.
+
+### 3. Low-Level Driving and Execution
+
+The **executor** within the runtime is responsible for polling the futures, driving them to completion. 
+In Rust, when an async task is awaited (using `.await`), the executor is the entity that decides when the 
+task can be resumed. The runtime may use an event loop or other scheduling mechanisms to track and poll 
+tasks. 
+
+For example, Tokio uses an internal event loop to manage and schedule tasks asynchronously.
+
+### 4. Scope of the Runtime
+
+* Runtime crate: The term "runtime" can sometimes refer to the entire library or framework that includes the 
+                 low-level scheduling and task management tools (such as the **Tokio** crate). 
+                 This is more than just the executor—it's the full ecosystem of utilities for async programming.
+
+* For example **Tokio**, the runtime includes not just the executor but also traits for asynchronous I/O 
+  (`AsyncRead`, `AsyncWrite`), utilities for timers, networking, file system access, and more.
+
+### 5. Components of a Runtime Crate
+
+Rust async runtimes typically come with various utility traits and components for handling different 
+asynchronous tasks:
+
+* I/O traits: Rust provides the `AsyncRead` and `AsyncWrite` traits that are commonly used in I/O-bound 
+              async operations. 
+              The runtime handles polling these traits and performing the I/O operations non-blocking.
+
+* Channels & Synchronization Primitives: Asynchronous communication between tasks can be managed using 
+              async channels (like `tokio::sync::mpsc`) or other concurrency primitives such as mutexes and
+              semaphores, designed for async environments.
+
+* Timer functionality: Runtimes like Tokio provide utilities for asynchronous timers (`tokio::time`), which 
+              are useful for scheduling events after a delay or for implementing timeouts.
+
+* OS interaction: The runtime is responsible for interacting with the OS, such as managing signals 
+             (ex: Ctrl+C handling) and managing processes.
+
+* Monitoring/Observation tools: Some runtimes offer tools to monitor and log async tasks, track the execution 
+             of futures, and offer observability.
+
+### 6. Why Choose Different Runtimes?
+
+Since Rust doesn’t enforce a particular async runtime, you get the freedom to choose one that best fits your
+needs:
+
+* Tokio: Popular and feature-rich runtime with extensive support for I/O, timers, and async features, making 
+         it suitable for large-scale applications with complex async needs.
+
+* async-std**: Lightweight alternative, mimicking the synchronous standard library API and offering a 
+         simpler approach. ( depreciated )
+
+* smol: Another lightweight async runtime that focuses on simplicity and minimalism.
+
+
+Each runtime has trade-offs in terms of performance, ease of use, and features, so choosing one depends on 
+your project's specific requirements (e.g., performance, ecosystem, features, community support).
+
+### Summary of Async Task Runtime Responsibilities
+
+* Scheduling tasks: 
+    Deciding which async tasks to run, when to poll them, and where to run them (on specific threads).
+
+* Managing I/O: 
+    Handling async I/O operations efficiently by interacting with the OS, using non-blocking system calls.
+
+* Low-level task management: 
+    Ensuring tasks are polled, executed, and completed as resources become available (such as CPU or I/O).
+
+* Utility functions and synchronization primitives: 
+    Providing essential tools for async operations, such as async I/O traits, locks, timers, and 
+    communication channels.
+
+The runtime acts as the orchestrator of async tasks in Rust, ensuring efficient execution while allowing you
+to write scalable and non-blocking code without needing to manage threads or low-level details yourself.
+
+--- 
+
+# Overview of `futures-rs` and its place in the Rust async ecosystem**:
+
+---
+
+### What is `futures-rs`?
+
+`futures-rs` (the **`futures` crate**) is the *foundational library* for asynchronous programming in Rust.
+It provides the **core abstractions**— `Future`, `Stream`, `Sink`, combinators, executors, and utility 
+traits—that the entire Rust async ecosystem is built on.
+
+Before `async/await` syntax was stabilized, *this crate defined the original future system*. 
+Even today, it remains the **low-level glue** that connects runtimes, libraries, and async components.
+
+---
+
+## What `futures-rs` Provides
+
+`futures` is **runtime-agnostic**. It does *not* include a full async runtime like Tokio. 
+It provides the foundations for asynchronous programming in Rust.
+Instead, it provides:
+
+* **Core traits**:
+
+  * `Future` (pre-std version)
+  * `Stream` (async iterators)
+  * `Sink`
+
+* **Combinators** (map, join, select, etc.)
+* **Utilities** for polling, pinning, channels, and tasks
+* A **lightweight executor** (mostly for testing or single-thread cases)
+* Adapters and compatibility layers
+
+Because it is runtime-agnostic, `futures` works with any executor: **Tokio**, **async-std**, **smol**, etc.
+
+This crate makes sense when you are thinking about implementing your own custom runtime.
+
+---
+
+## **How It Fits with Tokio and Other Runtimes**
+
+Think of the ecosystem like this:
+
+### **`futures-rs` → Foundations and traits**
+
+Common async building blocks used everywhere.
+
+### **Tokio / async-std / smol → Full async runtimes**
+
+They build on top of the concepts from `futures-rs`, providing:
+
+* task scheduling
+* I/O (networking, fs)
+* timers
+* threads
+
+Tokio re-implements its own versions of some traits (`AsyncRead`, `AsyncWrite`), but *still interoperates* 
+with `futures` through compatibility layers (`tokio-util`, `futures-util`).
+
+---
+
+## **When to Use `futures-rs`**
+
+You might use it when:
+
+* building **runtime-independent libraries**
+* needing fine-grained control over futures, streams, combinators
+* writing abstractions that should run on any executor
+* testing async components without a full runtime
+
+Most application developers will primarily use **Tokio**, but library authors often depend on `futures-rs`.
+
+---
+
+## **Summary**
+
+`futures-rs` is the **standard toolkit for low-level async building blocks in Rust**.
+Runtimes like **Tokio**, **async-std**, and **smol** build on these concepts (though sometimes with custom 
+versions), forming an ecosystem where `futures` provides *interfaces*, and runtimes provide the *execution*.
+
+It overlaps with runtimes, but remains the **neutral core layer** that ensures interoperability and shared 
+async vocabulary across the Rust ecosystem.
+
+---
+
+
+# `await` 
+
+
+`await` is a keyword used to **wait for the completion of a future**. 
+
+A **future** represents a computation that will eventually produce a result, but not immediately. 
+When you call `.await` on a future, the runtime **polls** it to check if the result is ready. 
+If the result is available, it’s returned immediately. If not, the current task yields control back to the 
+scheduler, allowing other tasks to execute while waiting.
+
+### How `await` Works
+
+The syntax for `await` is straightforward: you call it on a future with `.await`, like so:
+
+```rust
+some_future.await
+```
+
+`await` is a **postfix operator**, meaning it can be used seamlessly in chains of method calls or when 
+accessing fields:
+
+```rust
+let result = some_object.method().await;
+```
+
+### Example: Simple Async Functions
+
+Here’s an example of two async functions:
+
+```rust
+// An async function that completes immediately
+async fn add(a: u32, b: u32) -> u32 {
+  a + b
+}
+
+// An async function that waits for 1 second before adding
+async fn wait_to_add(a: u32, b: u32) -> u32 {
+  sleep(1000).await; // Simulating a delay (e.g., I/O operation)
+  a + b
+}
+```
+
+* Calling `add(15, 3).await` immediately returns `18`.
+* Calling `wait_to_add(15, 3).await` will eventually return `18`, but while it’s waiting (due to `sleep`),
+  **other tasks can execute**.
+
+This demonstrates how `await` makes async operations **non-blocking**: the program doesn’t stop to wait but
+instead yields control, letting other tasks run while waiting for the result.
+
+### Key Points on `await`
+
+* **Async functions return futures**: Calling an async function like `add` or `wait_to_add` returns a
+  `Future`, but the code inside the function doesn’t run until you use `.await`.
+
+* **No result without `.await`**: If you don’t use `.await` on an async function, it won’t run. 
+   It simply returns a future that is not executed. This is different from some languages where async 
+   functions start executing immediately upon calling.
+
+* **Cooperative multitasking**: When `await` yields control, it’s a form of **cooperative multitasking** 
+  — meaning tasks must voluntarily give up control to allow others to run. This is important for achieving  
+  concurrency without preemption (i.e., no forceful task switching).
+
+### Task Scheduling and Execution
+
+In **pure sequential code**, each function call runs to completion before the next one starts. 
+In an **async context**, things work differently. When you call an async function, it doesn’t execute right
+away. 
+
+Instead, it returns a future that must be **polled** by the runtime. If the future is not ready, the current
+task **yields control** to allow another task to run.
+
+`await` is an operator that helps **drive** the future forward:
+
+* If the future is ready, it returns the result.
+* If not, it **suspends** the current task and allows another task to run.
+
+You can only use `await` inside an **async context**, like inside an async function or a block that’s part
+of an async task. Without an async runtime, there's no way to actually *execute* the future, so async tasks
+can’t run independently.
+
+---
+
+#### Examples in Action
+
+#### Basic `say_hello` Example
+
+```rust
+// An async function to print a message
+async fn say_hello() {
+    println!("hello, world!");
+}
+
+#[tokio::main] // Initializes the Tokio runtime for async main
+async fn main() {
+    say_hello().await; // The task runs when we await it
+}
+```
+
+In the example above, `say_hello()` is an async function that doesn’t do any computation, but when we 
+call `.await`, the task is run within the Tokio runtime. If we omit `.await`, the `say_hello` function 
+never runs.
+
+#### Realistic `client` Example (with I/O)
+
+```rust
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut client = client::connect("127.0.0.1:6379").await?;
+
+    client.set("hello", "world".into()).await?;
+    let result = client.get("hello").await?;
+
+    println!("got value from the server; result={:?}", result);
+
+    Ok(())
+}
+```
+
+In this example, we're interacting with a Redis server. 
+The `connect`, `set`, and `get` methods are async and must be **awaited** to execute. 
+The program doesn't block while waiting for these I/O operations — other tasks could be run concurrently if
+present.
+
+#### Concurrency in Action
+
+Here’s an example where we introduce a delay and see how the task can yield control:
+
+```rust
+use tokio::time::{sleep, Duration};
+
+async fn say_hello() {
+    print!("hello, ");
+}
+
+async fn say_world() {
+    println!("world!");
+}
+
+#[tokio::main]
+async fn main() {
+    say_hello().await;
+    sleep(Duration::from_millis(1000)).await; // Task is paused for 1 second
+    say_world().await;
+}
+```
+
+Here, when `say_hello().await` is called, the task prints `"hello"`. Then, we call `sleep().await` to 
+simulate a 1-second delay. While this task is paused, the Tokio runtime could potentially schedule other 
+tasks. After the 1-second pause, `say_world().await` is executed, printing `"world"`. 
+
+The key takeaway is that `sleep().await` allows **other tasks to execute during the wait** — a feature of
+**concurrent execution**.
+
+---
+
+### Conclusion
+
+The `await` keyword in Rust is a powerful tool for async programming. It:
+
+* Allows you to **wait for a result** from a future without blocking the entire thread.
+* Works by **yielding control to the scheduler** when the result isn’t ready, enabling other tasks to run.
+* Is used within **async functions**, and is essential for making async code **execute**.
+
+It’s also important to note that **sequential async code** (like calling `await` one after another) doesn’t
+introduce concurrency — tasks must be designed to run concurrently for that benefit.
+
+As you build async applications, `await` allows you to write **efficient, non-blocking code**, while the
+runtime handles scheduling and executing tasks in parallel or concurrency where needed.
+
+--- 
+
+# Spawning Tasks
+
+In async programming, **tasks** represent units of work that the runtime schedules and executes. 
+
+**Spawning a task** means creating a new unit of work that can run concurrently with others, allowing for 
+**parallel execution** if the runtime supports it.
+
+Rust’s **Tokio runtime** provides a function `tokio::spawn` to spawn an asynchronous task.  This is similar
+to threads spawning : using `std::thread::spawn`
+
+This allows you to **run async functions concurrently** on potentially different threads. 
+Note that **spawn** is a function of the **Tokio runtime**, not part of Rust's standard library, 
+since tasks are a runtime concept.
+
+### Basic Example: Spawning Async Tasks
+
+```rust
+use tokio::{spawn, time::{sleep, Duration}};
+
+async fn say_hello() {
+    sleep(Duration::from_millis(100)).await;
+    println!("hello");
+}
+
+async fn say_world() {
+    sleep(Duration::from_millis(100)).await;
+    println!("world!");
+}
+
+#[tokio::main]
+async fn main() {
+    spawn(say_hello());
+    spawn(say_world());
+    // Give time for tasks to run
+    sleep(Duration::from_millis(1000)).await;
+}
+```
+
+* The `spawn` function takes an async **future** and schedules it as a **task** to run concurrently.
+
+* The tasks will be executed **concurrently**, meaning **both "hello" and "world!"** may print in random 
+  order (a race condition).
+
+* These tasks can **run on separate threads** depending on the runtime configuration 
+  (Tokio’s default is multi-threaded).
+
+### Key Concepts:
+
+* **Futures**: An async function returns a future.
+
+* **Tasks**: A future, once spawned using `tokio::spawn`, becomes a task managed by the runtime.
+
+* **Threads**: Tasks may run on different OS threads, but the primary purpose is to achieve **concurrency**
+  and potentially **parallelism** when scheduled on separate threads.
+
+When you call `spawn`, you create concurrency.
+Each task can run on its own, and **awaiting** them (like in the next section) can allow you to coordinate 
+when each task completes.
+
+---
+
+# Joining Tasks
+
+When you spawn a task, you can get its **result** by waiting for it to finish, which is known as **joining** 
+the task. 
+
+This is similar to joining threads in other languages, where you wait for the thread to finish execution.
+
+`tokio::spawn` returns a **JoinHandle**, which represents the task. 
+
+By awaiting the `JoinHandle`, you can **wait for the spawned task to finish** and retrieve its result.
+
+### Basic Example: Joining Tasks
+
+```rust
+use tokio::{spawn, time::{sleep, Duration}};
+
+async fn say_hello() {
+    sleep(Duration::from_millis(100)).await;
+    println!("hello");
+}
+
+async fn say_world() {
+    sleep(Duration::from_millis(100)).await;
+    println!("world");
+}
+
+#[tokio::main]
+async fn main() {
+    let handle1 = spawn(say_hello());
+    let handle2 = spawn(say_world());
+
+    // Wait for both tasks to finish
+    let _ = handle1.await;
+    let _ = handle2.await;
+
+    println!("!");
+}
+```
+1. 
+- `async fn main()`: This declares the main function as asynchronous.
+  The `async` functions return a Future.
+
+- `#[tokio::main]`: A macro provided by the Tokio. It wraps the main function and sets up the necessary 
+  asynchronous runtime (the Tokio scheduler). This allows you to call `.await` within main and ensures that 
+  the asynchronous tasks are executed.
+
+2. 
+    `let handle1 = spawn(say_hello());` and `let handle2 = spawn(say_world());`
+    
+- The spawn() function takes an async block or Future and immediately schedules it to run on the executor 
+  (the Tokio runtime) concurrently with other tasks.
+
+- `say_hello()` and `say_world()` are other `async` functions defined that are executed right away.
+
+- `spawn()` returns a `JoinHandle`  (handle1 and handle2). This handle is used later to wait for the spawned
+  task to complete and potentially retrieve its return value.
+
+3. 
+        `sleep(Duration::from_millis(90)).await;`
+
+- `sleep()` is Tokio's asynchronous equivalent of pausing. It doesn't block the entire thread; instead, it 
+  tells the Tokio runtime to pause this specific task (main) for 100 milliseconds, allowing the runtime to
+  switch context and execute other pending tasks (say_hello and say_world) during this time.
+
+- The `.await` keyword is used to pause the execution of the main function until the sleep Future is
+  complete.
+
+4. Waiting for Tasks to Complete
+
+    `let _ = handle2.await;` and `let _ = handle1.await;`
+
+-    `.await` on a `JoinHandle` pauses the current task (main) until the corresponding spawned task 
+    (ex: handle2) completes.
+
+- The tasks will likely have already finished during the 90ms sleep, but these lines ensure that the main 
+  function waits for the tasks to truly finish before the program exits.
+
+-  `let _ =` ignores the potential return value (and the `Result` wrapper) of the tasks.
+
+The execution order here is sequential for the wait operation:  `main` waits for `handle2` to finish, 
+then waits for `handle1` to finish. However, the tasks themselves (say_hello and say_world) are executing 
+concurrently in the background.
+
+#### Key Points:
+
+* JoinHandle: 
+    A `JoinHandle` is a **future** that represents the spawned task. 
+    By awaiting it, you wait for the task to finish and obtain its result.
+
+* Concurrency: 
+    Even though the tasks run concurrently, `await` on the `JoinHandle` ensures that `main` doesn’t exit 
+    until all tasks complete.
+
+* Sequential Behavior: 
+    If you remove the `await` on `JoinHandle`, the tasks will still be spawned, but you might lose control 
+    over their completion order.
+
+---
+
+# `JoinHandle`
+
+A `JoinHandle` is a struct that allows you to **track** the result of a spawned task. 
+When you spawn a task using `tokio::spawn`, it returns a `JoinHandle` which you can await to wait for the 
+task's completion.
+
+### What is a `JoinHandle`?
+
+* A `JoinHandle` is a **future** that you can **await** to get the result of the spawned task.
+* It can hold the task’s result (`Result<T, E>`), which you can inspect after the task completes.
+* If the spawned task **panics** or is **aborted**, the `JoinHandle` will return an error.
+
+### Example: Using `JoinHandle` to Wait for Task Completion
+
+```rust
+use tokio::{spawn, time::{sleep, Duration}};
+
+async fn say_hello() {
+    sleep(Duration::from_millis(100)).await;
+    println!("hello");
+}
+
+async fn say_world() {
+    sleep(Duration::from_millis(100)).await;
+    println!("world");
+}
+
+#[tokio::main]
+async fn main() {
+    let handle1 = spawn(say_hello());
+    let handle2 = spawn(say_world());
+    
+    let _ = handle1.await; // Wait for task 1 to finish
+    let _ = handle2.await; // Wait for task 2 to finish
+
+    println!("!");
+}
+```
+
+* Each `spawn` returns a `JoinHandle`, which is then awaited.
+* Result Handling: If the spawned task returns a result (e.g., `JoinHandle<String>`), `await` will 
+  return that result. In the example, the tasks return `()`, so `JoinHandle<()>` is used.
+* Error Handling: If the task panics or is aborted, the `JoinHandle` returns an error. 
+  You can unwrap it or handle it based on your needs.
+
+### Key Concepts:
+
+* Generic Type: `JoinHandle<T>` is generic, where `T` is the type of value returned by the spawned task 
+               (e.g., `JoinHandle<()>` for tasks with no result).
+
+* Result Handling: Awaiting a `JoinHandle` returns a `Result<T, JoinError>`. You can use `unwrap` or handle
+               errors in a more controlled way.
+
+* Panic Propagation: If the task panics, the `JoinHandle` returns a `JoinError`, and the panic is propagated
+               to the calling task when you await the `JoinHandle`.
+
+### Summary of Key Differences
+
+* Spawning Tasks: You use `tokio::spawn` to run an async function concurrently in the background. 
+  The function returns a `JoinHandle`, but you can ignore it if you don’t need to track the task’s result.
+
+* Joining Tasks: If you want to wait for the spawned task to complete, you can store the `JoinHandle` and
+  await it to get the result. This is essential for coordinating the completion of multiple tasks.
+
+* `JoinHandle`: This is a **future** that represents the result of the spawned task. You can await it to 
+  wait for the task to complete and handle its result, including any potential errors or panics.
+
+These concepts allow you to build **concurrent programs** where tasks can run in parallel, and the results
+of those tasks can be collected or coordinated as needed.
+
+---
+
+# Unit Tests in Async Rust
+
+Testing async code in Rust can be tricky because unit tests themselves are not asynchronous by default. 
+However, **Tokio** (and other runtimes) provide a convenient solution to make unit tests async using a 
+special attribute.
+
+### Using `#[tokio::test]` for Async Tests
+
+To write async unit tests, you can annotate your test function with `#[tokio::test]`, which will 
+automatically set up a Tokio runtime for the test, allowing you to `await` async code directly in the test 
+body.
+
+example:
+
+```rust
+#[tokio::test]
+async fn test_async_function() {
+    let result = async_function().await;
+    assert_eq!(result, expected_value);
+}
+```
+
+### Key Points:
+
+* The `#[tokio::test]` attribute automatically sets up the necessary Tokio runtime for running the async test.
+* You can use `await` inside the test function just like in any other async context.
+* Unit tests in async contexts still follow the standard testing framework in Rust, with assertions and 
+  setup/teardown as needed.
+
+### Advanced Testing Topics:
+
+* **Race Conditions**: You can test for conditions where tasks are racing for resources.
+* **Deadlocks**: You can simulate and test how your code handles deadlocks.
+* **Mocking async functions**: You may use libraries like `mockall` or `mockito` to mock async behavior.
+
+---
+
+# Blocking and Cancellation in Async Code
+
+## Blocking in Async Code
+
+In async Rust, **blocking** refers to situations where a thread or task is prevented from making progress 
+because it is waiting for some resource or operation (usually I/O) to complete. 
+However, since Rust async code relies on cooperative multitasking, blocking can lead to problems if a task
+blocks the thread, preventing other tasks from making progress.
+
+There are two types of blocking to consider:
+
+1. **Blocking I/O**
+   This is when a task is waiting for I/O operations to complete (e.g., reading from a file or making an 
+   HTTP request). If you use synchronous I/O in an async task, the entire thread can be blocked, which 
+   affects the runtime’s ability to schedule other tasks on that thread.
+
+2. **Blocking Computation**
+   This happens when an async task performs heavy computation without yielding control back to the runtime.
+   As a result, it prevents the scheduler from running other tasks.
+
+### How to Handle Blocking I/O in Async Code
+
+Async runtimes like **Tokio** have mechanisms to prevent blocking I/O from disrupting the event loop. 
+You should always use **non-blocking** I/O inside async tasks. Rust's standard library provides blocking 
+I/O (e.g., `std::fs::read`), but you can use Tokio’s async versions (like `tokio::fs::read`) to avoid 
+blocking.
+
+When you must perform blocking I/O, you can offload it onto a separate thread or 
+use `tokio::task::block_in_place` to ensure that blocking I/O doesn’t block the entire event loop.
+
+#### Example: Offloading Blocking I/O
+
+```rust
+use tokio::task;
+
+async fn perform_blocking_task() {
+    let result = task::block_in_place(|| {
+        // This will block the thread, but not the async runtime
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        42
+    });
+
+    println!("Blocking result: {}", result);
+}
+```
+
+Here, `block_in_place` ensures that the blocking task doesn’t interfere with other async tasks, allowing 
+the runtime to continue scheduling other tasks.
+
+### Blocking Computation
+
+For long-running computations that block the thread, you should ensure that tasks yield control back to the
+runtime regularly. You can use `tokio::task::yield_now()` to voluntarily yield control.
+
+#### Example: Preventing Computation from Blocking
+
+```rust
+use tokio::task;
+
+async fn compute_large_task() {
+    for i in 0..10 {
+        // Simulate a computation
+        println!("Computing {}", i);
+        // Yield control back to the runtime to allow other tasks to run
+        task::yield_now().await;
+    }
+}
+```
+
+Using `yield_now()` ensures that the computation doesn’t monopolize the thread, allowing other tasks to run 
+concurrently.
+
+---
+
+## Cancellation in Async Code
+
+Cancellation refers to stopping a future (or task) from executing prematurely. 
+
+In Rust, futures are **poll-driven**, meaning that they will continue executing as long as they are polled,
+and they don’t execute unless explicitly driven forward by an async runtime.
+
+There are several ways to **cancel** a future:
+
+### 1. Dropping the Future
+
+* If a future is dropped (i.e., goes out of scope), it is canceled and cannot be polled further. 
+  This is the simplest form of cancellation.
+
+### 2. Aborting a Task
+
+* If you want to cancel a running task, you can call `abort` on a task’s `JoinHandle` or use an 
+  `AbortHandle` from Tokio.
+
+#### Example: Aborting a Task
+
+```rust
+use tokio::{task, time::{sleep, Duration}};
+
+async fn long_running_task() {
+    sleep(Duration::from_secs(5)).await;
+    println!("Task completed!");
+}
+
+#[tokio::main]
+async fn main() {
+    let handle = task::spawn(long_running_task());
+    
+    // Abort the task before it finishes
+    handle.abort();
+
+    // Awaiting a canceled task results in a JoinError
+    let result = handle.await;
+    if let Err(e) = result {
+        println!("Task was aborted: {:?}", e);
+    }
+}
+```
+
+Here, the task is aborted before it finishes, and `handle.await` returns an error (`JoinError`), indicating 
+that the task was canceled.
+
+### Cancellation Tokens (Cooperative Cancellation)
+
+In Tokio, you can use a **CancellationToken** to signal a future to cancel itself. 
+This approach requires the future to periodically check if it should stop execution.
+
+#### Example: Using a Cancellation Token
+
+```rust
+use tokio::{sync::CancellationToken, time::{sleep, Duration}};
+
+async fn process_with_cancellation(token: CancellationToken) {
+    for i in 0..5 {
+        if token.is_cancelled() {
+            println!("Task was canceled");
+            return;
+        }
+        println!("Processing {}", i);
+        sleep(Duration::from_secs(1)).await;
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let token = CancellationToken::new();
+    let task = tokio::spawn(process_with_cancellation(token.clone()));
+
+    // Simulate some condition to cancel the task
+    sleep(Duration::from_secs(2)).await;
+    token.cancel();  // Trigger cancellation
+
+    let _ = task.await;  // Wait for task to handle cancellation
+}
+```
+
+In this example, the future checks the cancellation token at each step and terminates early if the token is 
+canceled.
+
+### Important Considerations for Cancellation
+
+* Cooperative Cancellation: 
+  If using a cancellation token, the future itself must check periodically (using `is_cancelled`) and react 
+  accordingly. If the future doesn’t check the token, it won’t cancel.
+
+* Non-Cooperative Cancellation: Other methods like aborting or dropping a `JoinHandle` can cancel the 
+  task **without** notifying the task itself. The task will not have an opportunity to clean up any resources.
+
+---
+
+### Summary
+
+* Unit Tests: Use `#[tokio::test]` to run async unit tests in Tokio. This macro allows async functions to 
+  be written as unit tests, enabling you to `await` directly in the test body.
+
+* Blocking and Cancellation: Avoid blocking I/O and long-running computations in async code. 
+  Use mechanisms like `block_in_place` for blocking I/O and `yield_now` for long computations.
+  Tasks can be canceled by aborting a `JoinHandle` or using a `CancellationToken` for cooperative cancellation.
