@@ -817,10 +817,10 @@ operations that take time but do not want to block the entire application. For e
 - Computation: In scientific computing, simulations often involve heavy calculations that can be done
   asynchronously to improve overall system performance.
 
-## Pooling the `Future` and `Waker`
+# Pooling the `Future` and `Waker`
 
 
-### Pooling
+## Pooling
 When `Future` gets executed the executor check the status of `Future`: It returns two states:
 
 - `Poll::Pending` : `Future` is still being computed and isn't ready yet. 
@@ -864,7 +864,7 @@ impl Future for MyFuture {
 
 When task is pending we need a mechanism to tell the executor when the task can be polled again. 
 
-### Walker
+## Walker
 `Walker` is a mechanism that tells the executor that the `Future` is ready to be polled again.
 
 It is created during the polling process and passed to the `Future` as part of the Context argument.
@@ -1112,7 +1112,7 @@ fn main_system_example() {
     - Use `wake_by_ref()` when you might need the waker again
 
 
-## `async` and `.await` 
+# `async` and `.await` 
 
 That's the perfect transition! After understanding the low-level mechanics of `Futures`, `polling`, and the 
 `Waker`, reader need to see how Rust makes this complexity manageable with the high-level `async` and 
@@ -1124,7 +1124,7 @@ machinery for you safely and efficiently.
 
 `async` and `.await` are shorthand for managing the above complexity.
 
-### `async` as Syntax sugar for State Machines:
+## `async` as Syntax sugar for State Machines:
 
 The `async` keyword in Rust is a shorthand that allows us to write asynchronous functions without having to 
 manually implement the `Future` trait. 
@@ -1132,7 +1132,7 @@ manually implement the `Future` trait.
 In reality, Rust transforms the body of an `async` function into a **state machine** that is capable of 
 being polled multiple times.
 
-#### How `async` works:
+### How `async` works:
 
 When you mark a function as `async`, Rust creates an anonymous struct that implements the `Future` trait.
 
@@ -1141,7 +1141,7 @@ The body of the func is then split into parts, and these parts represent the sta
 Each time the func is polled (via `.await`), it either moves to a new state or returns the result when it's 
 ready.
 
-### Example: Transforming an async function into a state machines
+## Example: Transforming an async function into a state machines
 
 ```rust 
 // 1. Defining the async function
@@ -1205,7 +1205,7 @@ async fn simple_task() -> i32 {
     The `async` func implements the `Future` trait behind the scenes, meaning that when you call an `async` 
     func, it returns a Future — something that may not be immediately available but will be in the future.
 
-### `await` as Syntax Sugar for Polling
+## `await` as Syntax Sugar for Polling
 
 The `.await` keyword is the partner to `async`. It can only be used inside an `async` func or `async` block.
 The `await` keyword is used to block the execution of an `async` function until the inner future is ready. 
@@ -1215,7 +1215,7 @@ Conceptually, `await` is shorthand for polling the inner Future until it resolve
 When you use `.await` on a `Future`, the executor will continuously `poll` that `Future` (without blocking 
 the current thread) until the Future returns a result.
 
-#### How await works:
+### How await works:
 
 - Polling: 
     `.await` effectively calls the poll method on the `Future`.
@@ -1276,7 +1276,7 @@ fn main() {
   The `block_on` function (from the `futures` crate) runs the `async` function to completion, simulating the 
   behavior of an `async` runtime.
 
-### Example: Calculating Trajectory
+## Example: Calculating Trajectory
 ```rust 
 // Mock Futures for the two stages
 async fn calculate_air_resistance(initial_vel: f64) -> f64 {
@@ -1338,7 +1338,7 @@ What Happens Internally:
 - Once the `Future` is ready (`Poll::Ready`), the function resumes from where it left off and returns the 
   result.
 
-## `async` and `await` Together:
+# `async` and `await` Together:
 
 When combined, `async` and `await` make asynchronous programming in Rust much more readable and intuitive.
 
@@ -1353,7 +1353,7 @@ Here’s how the entire process works in a typical flow:
     If the `Future` is still pending, the function execution is suspended, and once the `Future` resolves,
     the function picks up where it left off.
 
-### Example: Chaining Multiple async Operations
+## Example: Chaining Multiple async Operations
 
 ```rust 
 use std::future::Future;
@@ -1408,7 +1408,7 @@ fn main() {
 - Sequential Execution: The tasks are executed one after the other. After `TaskA` completes, `TaskB` starts.
   The final result is the sum of the two tasks.
 
-Summary:
+## Summary:
 - `async` creates a state machine behind the scenes that implements the `Future` trait, allowing the 
   function to be paused and resumed.
 
@@ -1419,7 +1419,8 @@ Summary:
   runs asynchronously behind the scenes. This makes Rust's async model more approachable without sacrificing
   performance.
 
-## Executor: (Asynchronous Runtime)
+---
+# Executor: (Asynchronous Runtime)
 
 `async` creates a `Future` (a definition of work) and 
 `.await` drives the polling cycle. And returns future.
@@ -1446,7 +1447,7 @@ asynchronous program flow.
        completed network read) calls a Future's associated `Waker`. Upon receiving a wake-up signal, the 
        Executor moves that `Future` from a "waiting" state back into the "ready" queue.
 
-### The Relationship Between Executor, Future, and waker
+## The Relationship Between Executor, Future, and waker
 
 The Executor ties all the previous concepts together:
 
@@ -1457,7 +1458,7 @@ The Executor ties all the previous concepts together:
 |Waker (Mechanism)|Defines how to wake up the waiting Future.|Notifies the Executor to put the Future back into the ready queue.|
 |Executor (Runtime)|Defines when and how to run the Future.|Calls poll() and manages the ready/waiting queues|
 
-### Running a Future: The Final step
+## Running a Future: The Final step
 Since Futures are lazy, your main synchronous function (fn main()) cannot simply call an `async fn` and 
 expect it to run. You must explicitly start an Executor to `poll` the root Future.
 
@@ -1513,7 +1514,7 @@ async fn main() {
     println!("Total execution time with concurrency: {:.2?}", duration);
 }
 ```
-### The Power of Concurrency:
+## The Power of Concurrency:
 
 If we had run these 2 tasks synchronously (sequentially), the total time would be approx 800ms+300ms=1100ms.
 
