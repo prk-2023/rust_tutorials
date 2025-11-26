@@ -614,7 +614,7 @@ impl Future for SensorReading {
 // Note: This future does ABSOLUTELY NOTHING until we poll it!
 ```
 ### - Example 2:
-```rust 
+```rust
 // 1. Defining the Future struct
 // This struct holds the state needed for the computation: 
 // a mock counter to simulate waiting.
