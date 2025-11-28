@@ -4,7 +4,7 @@ The core argument for Rust's design philosophy:
     The safety features are largely "zero-cost abstractions," 
     which means they impose minimal to no runtime overhead compared to C's approach.
     
-And a true fair comparison would be to compare Idiomatic Rust code agains Security-hardened C code. 
+And a true fair comparison would be to compare Idiomatic Rust code against Security-hardened C code. 
 
 Std C lang provides minimal built-in safety, allowing compilers to make aggressive
 optimizations that assume the programmer has written correct code
@@ -19,8 +19,8 @@ Rust on the other hand provides its safety guarantees in 2 main ways:
    accesses are performed at runtime. This is the primary source of Rust's performance 
    difference in micro-benchmarks.
    
-A Fair comparision would be:
-Harderning C: Programs ( benchmark ) should manually add checks or relay on compiler/lib 
+A Fair comparison would be:
+Hardening C: Programs ( benchmark ) should manually add checks or relay on compiler/lib 
 features, which introduce overhead. Some key manual additions in C that correspond to Rust
 runtime checks are:
 
@@ -40,7 +40,8 @@ runtime checks are:
    Using functions like strlcpy (if available) or manually tracking buffer sizes, 
    instead of unsafe functions like strcpy
    
-Adding this extra constarins to make C more safe will decrease its performance edge it had over ifiomatic Rust code. 
+Adding this extra constrains to make C more safe will decrease its performance edge it had over idiomatic
+Rust code.
 
 Compiler Hardening Flags:
 In professional C environments, developers often enable compiler hardening flags to
@@ -59,13 +60,9 @@ performance difference relative to Rust would likely shrink or even reverse in s
 Benchmarks:  ( http://www.roylongbottom.org.uk/ ) and on his youtube channel.
 
 • Dhrystone — pointer-heavy, string-heavy, logic-heavy
-
 • Whetstone — floating-point and math operations
-
 • MemSpeed — memory throughput, scaling, and stalls
-
 • Mandelbrot — algorithmic complexity and numerical accuracy
-
 • Livermore Loops (coming soon) — the ultimate compiler stress test
 
 These are excellent for measuring raw instruction performance and compiler optimization 
@@ -80,9 +77,9 @@ Rust's core safety (the Borrow Checker) is handled at compile time, leaving only
 necessary checks (like array bounds) at runtime.
 
 => In real-world apps with complex data structures and concurrency, 
-   Rust often outperforms C because its language guarantees allow the compiler to make stronger optimizations (like enabling LLVM's noalias optimization) and make it 
-   easier for the programmer to write efficient, concurrent code without introducing
-   subtle bugs.
+   Rust often outperforms C because its language guarantees allow the compiler to make stronger 
+   optimizations (like enabling LLVM's noalias optimization) and make it easier for the programmer to write 
+   efficient, concurrent code without introducing subtle bugs.
  
 ----------------------------------------------------------------------- 
 Or:
@@ -111,6 +108,7 @@ In `unsafe` Rust you can skip these checks:
         // This is the C equivalent: trust the programmer
         *my_vec.get_unchecked(index)
     };
+```
     
 The Performance Effect
 When the compiler knows the access is safe (either through compiler optimization or 
