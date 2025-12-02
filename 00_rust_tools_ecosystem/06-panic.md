@@ -191,3 +191,118 @@ When a Rust program is compiled, several other programs are included in the bina
 6.  **`libdl`**: The dynamic linker library is included in the binary, as Rust uses it for certain operations such as dynamic linking.
 7.  **`librt`**: The real-time library is included in the binary, as Rust uses it for certain operations such as timing and scheduling.
 Here's an example of how to reduce the size of a binary using the `cargo build` command:
+
+
+# Divergent Functions that never return **!** 
+
+In Rust a function that has a return type of `!` if known as **Divergent Function**. This means that the
+function will never return a value, either because it causes the program to panic, or enters an infinite
+loop, Or exits the program in such a way that no normal return occurs. 
+
+## Key points about `!` (the never type):
+
+* **`!` (Never Type)**: This type represents a value that cannot exist. It is used for funcs that either:
+
+  * **Panics** (using `panic!()`),
+  * **Exits** the program (via `std::process::exit()`),
+  * **Runs forever** (with an infinite loop like `loop {}`).
+
+## Common scenarios where `!` is used:
+
+### 1. **Infinite Loops**:
+   If you have a function that runs forever (without returning), its return type can be `!`.
+
+   Example:
+
+   ```rust
+   fn infinite_loop() -> ! {
+       loop {
+           // This will run forever
+       }
+   }
+   ```
+
+### 2. **Panic**:
+   If a function can panic, it can also have a return type of `!`. A panic stops the program's normal 
+   execution, so the function will never return.
+
+   Example:
+
+   ```rust
+   fn cause_panic() -> ! {
+       panic!("This is a panic!");
+   }
+   ```
+
+### 3. **Exiting the Program**:
+   A function can use `std::process::exit` to stop the program and never return from that function.
+
+   Example:
+
+   ```rust
+   fn exit_program() -> ! {
+       std::process::exit(1); // This exits the program with status code 1
+   }
+   ```
+
+### 4. **Unreachable Code**:
+   If you have a function that doesn't have any return, or has a condition where no return is possible, you 
+   can use `!`. For example, after a `return` or a `panic!()` call, you can indicate that the code will 
+   never get past that point.
+
+   Example:
+
+   ```rust
+   fn unreachable_code() -> ! {
+       return; // or panic!("Never reach here!");
+   }
+   ```
+
+## The Behavior of Functions with `!`:
+
+* **The type `!`** is often used in cases where you would normally expect a function to return a value, but
+  instead, it never finishes execution.
+
+* **Control Flow**: When the compiler sees that a function has the return type `!`, it understands that any 
+  code after that function call is unreachable. 
+  This can help the compiler with optimizations, as it knows that a path in the program will never be taken.
+
+### Example: A function with a panic:
+
+```rust
+fn fail() -> ! {
+    panic!("This function will never return!");
+}
+
+fn main() {
+    fail(); // This will panic and terminate the program
+    println!("This line will never be reached!");
+}
+```
+
+Output:
+
+```
+thread 'main' panicked at 'This function will never return!', src/main.rs:2:5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+In this example, the `fail` function causes a panic, and the program terminates. The line `println!("This line will never be reached!");` will never be executed, because the program has already terminated due to the panic.
+
+### Why Use `!`?
+
+Using `!` in Rust is a way of expressing that a function doesn't return normally. It's useful in situations like:
+
+* Functions that stop the program or cause an unrecoverable error (such as panicking or exiting).
+* Expressing functions that run forever, like in embedded systems or servers that wait for input indefinitely.
+
+### In Summary:
+
+* A function with a return type of `!` indicates that the function **never returns**.
+* It could be due to:
+
+  * An infinite loop (`loop {}`),
+  * A panic (`panic!()`),
+  * Or program exit (`std::process::exit()`).
+
+This feature makes Rust's type system expressive and helps with control flow analysis and optimizations.

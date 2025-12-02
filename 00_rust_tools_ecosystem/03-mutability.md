@@ -12,6 +12,12 @@
 - All values are immutable by default. This means that once a value is created, it cannot be changed.
   This is in contrast to languages like C or C++, where values are mutable by default.
 
+- Immutable reference (&T): When we pass a reference like `&x` to a function, you are passing  an immutable 
+  reference to `x`. This means that some_function can borrow the value of `x` without taking ownership of it.
+
+  Since You are passing `&x` the address to some function, `x` remains valid (i.e not moved or invalidated)
+  after the function call, and the function can access its value without being able to modify it.
+
 3. **Mutability with `mut`**
 ---
 
@@ -38,6 +44,13 @@
         let z = &x; // immutable reference
         *z = 10; // error: cannot assign to `*z` which is behind a `&` reference
     ```
+- While a **mutable referece** allows a function to modify the value of `x`. However, mutable reference come
+  with strict rules: 
+  * You can have only **One mutable reference** to a piece of data at a time ( no aliasing ).
+  * You can not have a **mutable reference and an immutable reference to the same data at the same type. 
+
+- Borrow Checker : Rust compiler performs Borrow checking which checks to ensure that you cannot access
+  invalid or deallocated data, preventing use-after-free errors.
 
 5. **Borrow Checker**
 ---
