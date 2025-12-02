@@ -37,9 +37,150 @@ linked with **musl**, as the resulting binary is self-contained with minimal dep
 | **Deployment** | Single, self-contained binary (especially with musl) | Requires `libbpf` shared library on target | Requires runtime dependencies (Python, etc.) |
 
 
+# Aya crate :Roadmap ( gitbub )
 
+---
 
-# Aya Crate: Roadmap 
+## Overview of Aya’s Structure
+
+Based on the aya repo official repository: the top‑level folders include:
+
+```
+aya/                  ← the main Rust library (user‑space loader + runtime)
+aya-ebpf-macros/      ← macros for defining eBPF programs in Rust
+aya-obj/              ← parsing/manipulating eBPF ELF / object files
+aya-build/            ← build toolchain / build scripts support
+aya-tool/             ← tools/utilities around Aya (CLI helper, etc.)
+...
+```
+
+Additionally, there are some other folders (e.g. for logging, examples, test harnesses), but the main 
+crates relevant to writing and loading eBPF code are: `aya`, `aya-ebpf-macros`, `aya-obj`, and optionally 
+`aya-tool` / `aya-build`. ([GitHub][1])
+
+Also, the broader ecosystem includes separate repositories/crates such as bpf-linker (for static linking of 
+BPF bitcode) under the same organization. ([GitHub][2])
+
+## Revised “Study‑Aya” Roadmap (aligned to real crates)
+
+Here is a revised, crate‑aligned learning roadmap for Aya.
+
+### Phase 1 — Explore the main library (user‑space + loader): **`aya/`**
+
+**Goal:** Understand how Aya loads eBPF programs, handles maps, syscalls, and attachments.
+
+* Read `aya/src/lib.rs` → entry point; see how `Ebpf` is exposed. ([Docs.rs][3])
+* Study modules under:
+
+  * `aya/src/programs/` : 
+    Contains definitions for program types (XDP, TC, cgroup, etc.) and how they are loaded/attached. ([Docs.rs][3])
+
+  * `aya/src/maps/` :
+    How BPF maps are created, manipulated, and shared between user and eBPF. ([Docs.rs][3])
+
+  * `aya/src/sys/` : 
+    raw syscalls wrappers (`bpf()`, map creation, program load, pin, etc.). ([Docs.rs][3])
+
+  * `aya/src/pin/` / `aya/src/util/` — utility / support modules. ([Docs.rs][3])
+
+**Practical exercises:**
+
+* Load a pre‑compiled `.o` or `.elf` BPF program from Rust (via `Ebpf::load_file()`), inspect sections.
+
+* Create a BPF map (e.g. HashMap or Array) via Aya, insert/read entries.
+
+* Attach a simple program (e.g. XDP or kprobe) from Rust, trigger it, and verify behavior.
+
+---
+
+### Phase 2 — Explore the macro crate **`aya-ebpf-macros/`**
+
+**Goal:** 
+Understand how Rust attribute macros generate eBPF sections, metadata, and wrappers so that you can write 
+kernel‑side eBPF code in Rust ergonomically.
+
+* Inspect `aya-ebpf-macros/src/` to see how procedural macros are defined.
+
+* Try writing a minimal eBPF program using macros (e.g. using `#[xdp]`, `#[map]`, etc.).
+
+* Build with Cargo target `bpfel-unknown-none` (or suitable BPF target) to observe generated ELF sections.
+
+This is how you write the “kernel side” of eBPF with Aya (in Rust), while the `aya/` crate handles 
+loading + runtime in userspace.
+
+---
+
+### Phase 3 — Learn the object & relocation backend: **`aya-obj/`**
+
+**Goal:** 
+Understand how eBPF object files (ELF) are parsed, how relocations and BTF metadata are processed : useful 
+if you intend to inspect, manipulate, or build tooling around eBPF objects.
+
+* Read the `aya-obj` crate (documentation / sources) — it parses eBPF ELF files, supports BTF & relocations. 
+  ([Lib.rs][4])
+
+* Try parsing an existing eBPF `.o` file, listing its sections, maps, program headers.
+
+* If interested in low-level tooling (e.g. custom loader, bundler, static analysis), use `aya-obj` directly 
+  rather than the high-level `aya`.
+
+> Note: For most use cases (writing + loading eBPF programs), you don’t actually need `aya-obj` : it’s more 
+> for tooling, introspection, advanced use. ([Lib.rs][4])
+
+---
+
+### Phase 4 — Optional utilities/tools: **`aya-tool/`, `aya-build/`**
+
+These are auxiliary — build helpers, maybe bundling scripts, or command‑line tools around Aya. 
+Explore if you:
+
+* Want to build custom CLI tools for eBPF deployment
+* Want to integrate Aya-building into build pipelines (CI, embedded builds)
+* Want to automate map pinning, loading, or reloading
+
+They are not strictly required to understand the core functionality, but useful for full-stack, real‑world 
+deployment workflows.
+
+### Phase 5 — Use the official docs / “book” for structured tutorial
+
+The project maintains a documentation site (the “Aya Book”) which walks through usage patterns, examples, and recommended workflows. ([GitHub][1])
+Use that alongside reading the code — it helps connect the high‑level UX with the underlying source layout.
+
+---
+
+## Sample Updated Weekly Learning Plan (Aligned to Real Layout)
+
+| Week | Focus                                                                       | Key Crates / Modules                       | Goals / Exercises                                                                           |
+| ---- | --------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| 1    | Basic eBPF with Aya (user-space)                                            | `aya/` — programs, maps, sys               | Load a sample BPF program; attach & test XDP or kprobe; manipulate maps                     |
+| 2    | Write Rust-based eBPF (macros)                                              | `aya-ebpf-macros/`                         | Create a minimal eBPF program in Rust; compile to `.o`; load & run it                       |
+| 3    | Build & inspect BPF objects                                                 | `aya-obj/` (or just compile & inspect ELF) | Parse object files; list maps & sections; examine relocation metadata                       |
+| 4    | Combine end-to-end: write, compile, load, attach, communicate via maps/perf | `aya-ebpf-macros/` + `aya/`                | Build a full Rust eBPF + userspace app; pass data via maps or ringbuf; test on real kernel  |
+| 5    | (Optional) Embedding / static build / cross-compile                         | `aya/` + build scripts                     | Cross-compile for target, integrate into minimal container or embedded rootfs; test runtime |
+| 6    | (Optional) Tooling or custom loader                                         | `aya-obj/` + `aya-tool/`                   | Write small CLI to load BPF from object, attach it, print map contents — in pure Rust       |
+
+---
+
+## Why This Realigned Roadmap Matters
+
+* It matches how the repository is actually organized — avoids confusion from “fictional folders.”
+* It helps you avoid digging into irrelevant folders (e.g. old tests, logging utilities) when you first start.
+* By splitting into clear crates (`aya`, `aya-ebpf-macros`, `aya-obj`), you separate **user-space loader**,
+  **kernel‑side program writing**, and **object‑file tooling** — which helps conceptual clarity.
+* It’s more maintainable: when Aya evolves, these crates will likely remain stable containers of their 
+  functionality.
+
+---
+
+If you want — I can **generate a small script** (in bash or Rust) that prints out **all the Aya crates and submodules** with a brief description (like a “table of contents” map), so you have a quick reference while studying.
+Do you want me to produce that script for you now?
+
+[1]: https://github.com/aya-rs/aya?utm_source=chatgpt.com "GitHub - aya-rs/aya: Aya is an eBPF library for the Rust programming language, built with a focus on developer experience and operability."
+[2]: https://github.com/aya-rs/bpf-linker?utm_source=chatgpt.com "GitHub - aya-rs/bpf-linker: Simple BPF static linker"
+[3]: https://docs.rs/aya?utm_source=chatgpt.com "aya - Rust"
+[4]: https://lib.rs/crates/aya-obj?utm_source=chatgpt.com "aya-obj — Rust parser // Lib.rs"
+
+# Aya Crate: Roadmap  (Incorrect folder mapping Refer only for key points )
 
 Aya is a powerful ecosystem, but it *does* require understanding several moving parts.
 Here is a **clean, structured, step-by-step roadmap** to study and master the Aya crates “piece by piece,” 
