@@ -17,9 +17,9 @@
    Generate the docs in aya/site/
    contains 4 basics groups:
  .........
- Documenting aya v0.13.2 (~/Aya/aya/aya) 
- Documenting aya-ebpf v0.1.2 (~/Aya/aya/ebpf/aya-ebpf)
- Documenting aya-log v0.2.2 (~/Aya/aya/aya-log)
+ Documenting aya v0.13.2 ( aya/aya )
+ Documenting aya-ebpf v0.1.2 ( aya/ebpf/aya-ebpf )
+ Documenting aya-log v0.2.2 ( aya/aya-log )
  Documenting aya-log-ebpf v0.1.2 (~/Aya/aya/ebpf/aya-log-ebpf)
 
  The documents contain 2 parts for userspace and 2 parts for kernel space.
@@ -328,7 +328,7 @@ They are cryptic but essential.
 
 -----------------------------------------------------------
 
-# 📂 Repo Structure of Aya (from GitHub)
+# Repo Structure of Aya (from GitHub)
 
 The aya repo contains many sub-crates: 
 
@@ -611,7 +611,7 @@ Here is the complete step-by-step flow when you build and run an Aya-based eBPF 
 
 ---
 
-## ⭐ Summary
+## Summary
 
 This complete diagram shows:
 
