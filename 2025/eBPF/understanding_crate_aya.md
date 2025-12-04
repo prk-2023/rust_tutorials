@@ -354,7 +354,8 @@ Here’s a refined plan with actual folder names/paths, so you can directly open
 1. **Get a working example running**
 
    * Clone the repo, build an example.
-   * Try out any example under the root `examples/` (if present) or use the scaffold from `aya-template`. Note: If no root `examples/`, see the documentation via the “Aya Book” for guidance. ([GitHub][2])
+   * Try out any example under the root `examples/` (if present) or use the scaffold from `aya-template`. 
+   Note: If no root `examples/`, see the documentation via the “Aya Book” for guidance. ([GitHub][2])
    * aya-rs : Aya book has `examples/` clone "https://github.com/aya-rs/book"
    * This step helps you see the full cycle: compile BPF → load → attach → interact.
 
@@ -364,49 +365,70 @@ Here’s a refined plan with actual folder names/paths, so you can directly open
 
      * `aya/programs/` — where different BPF program types are implemented (XDP, kprobe, tracepoint, etc.).
      * `aya/maps/` — map abstractions (HashMap, Array, RingBuffer, etc.).
-     * `aya/sys/` or similar — syscall wrappers that perform the low-level `bpf(2)` syscalls to load programs or create maps.
-   * This will show how Aya handles loading, attaching, map creation, and how it uses only libc syscalls (no libbpf). Indeed, the repo declares that — purely Rust + libc. ([GitHub][3])
-   * Also check how pinning works, how BTF support is handled (if relevant), and how programs are identified inside ELF file.
+     * `aya/sys/` or similar — syscall wrappers that perform the low-level `bpf(2)` syscalls to 
+       load programs or create maps.
+   * This will show how Aya handles loading, attaching, map creation, and how it uses only libc syscalls 
+     (no libbpf). Indeed, the repo declares that — purely Rust + libc. ([GitHub][3])
+   * Also check how pinning works, how BTF support is handled (if relevant), and how programs are identified
+     inside ELF file.
 
 3. **Study kernel-side macros — `aya-ebpf-macros/`**
 
-   * This crate defines procedural macros that you use in your BPF Rust code (e.g. to mark a function as an XDP handler, or define BPF maps).
-   * Look for files like `macros.rs` or similar inside that folder to see how those macros generate code & metadata that the loader expects.
+   * This crate defines procedural macros that you use in your BPF Rust code (e.g. to mark a function as an 
+     XDP handler, or define BPF maps).
+   * Look for files like `macros.rs` or similar inside that folder to see how those macros generate code & 
+     metadata that the loader expects.
 
 4. **For BPF code: understand map definitions + BPF helpers**
 
-   * Although much of the internal eBPF-safe Rust runtime might be hidden in generated code / macros, it helps to search where generic map abstractions and BPF helper wrappers live.
-   * Use combinations of the map abstractions (from userspace) + the macros (kernel-side) to ensure types and layouts line up.
+   * Although much of the internal eBPF-safe Rust runtime might be hidden in generated code / macros, it 
+     helps to search where generic map abstractions and BPF helper wrappers live.
+   * Use combinations of the map abstractions (from userspace) + the macros (kernel-side) to ensure types 
+     and layouts line up.
 
 5. **Use `aya-tool/` when you need kernel type definitions**
 
-   * If your BPF program needs kernel structs (like `task_struct`, socket structures, etc.), run `aya-tool` to generate Rust bindings via BTF + bindgen. This avoids hand-writing C or manually maintaining incompatible types. ([aya-rs.dev][4])
+   * If your BPF program needs kernel structs (like `task_struct`, socket structures, etc.), run `aya-tool` 
+     to generate Rust bindings via BTF + bindgen. This avoids hand-writing C or manually maintaining 
+     incompatible types. ([aya-rs.dev][4])
    * This is often critical when writing more advanced BPF programs referencing kernel data.
 
 6. **Inspect lower-level object parsing via `aya-obj/` (optional / advanced)**
 
-   * If you ever need to introspect or manipulate the BPF ELF object (e.g. read BTF, relocation info, custom sections), `aya-obj` is the crate to explore. Useful if doing custom loader code, analysis, or tools built around Aya. ([Docs.rs][5])
+   * If you ever need to introspect or manipulate the BPF ELF object (e.g. read BTF, relocation info, 
+     custom sections), `aya-obj` is the crate to explore. 
+     Useful if doing custom loader code, analysis, or tools built around Aya. ([Docs.rs][5])
 
 --------------------------------------------
 
 # Extra Official Resource: “The Aya Book”
 
-In addition to the code, the Aya project maintains “The Aya Book” — an official, continuously updated guide for using Aya to build eBPF programs. ([GitHub][2])
+In addition to the code, the Aya project maintains “The Aya Book” — an official, continuously updated guide 
+for using Aya to build eBPF programs. ([GitHub][2])
 
-I strongly recommend reading it **alongside** browsing the source code: it helps connect how conceptual pieces map to real code.
+I strongly recommend reading it **alongside** browsing the source code: it helps connect how conceptual 
+pieces map to real code.
 
 ---
 
 ##  What This Structure Means for You (as you learn / build)
 
-* Because Aya is **self-hosted (in Rust only)** with multiple crates in one repo, it’s easier to trace how the userspace loader and the eBPF-side macros interact.
-* The separation into crates (userspace vs macros vs tool) gives you **clear boundaries**, which is huge when trying to reason about user-space vs kernel-space code.
+* Because Aya is **self-hosted (in Rust only)** with multiple crates in one repo, it’s easier to trace how 
+  the userspace loader and the eBPF-side macros interact.
+
+* The separation into crates (userspace vs macros vs tool) gives you **clear boundaries**, which is huge 
+  when trying to reason about user-space vs kernel-space code.
+
 * If you need kernel types — no need for C: you can generate them automatically with `aya-tool`.
-* If you ever need advanced behavior (ELF manipulation, custom loader, static linking), you have modules like `aya-obj`, and the whole repo is Rust — you don’t need to switch context to C or libbpf.
+
+* If you ever need advanced behavior (ELF manipulation, custom loader, static linking), you have modules 
+  like `aya-obj`, and the whole repo is Rust — you don’t need to switch context to C or libbpf.
 
 ---
 
-**Generate a visual diagram** (ASCII-art or markdown) that shows how the crates/modules connect (loader ↔ macros ↔ tool ↔ your code ↔ kernel).
+**Generate a visual diagram** (ASCII-art or markdown) that shows how the crates/modules connect 
+(loader ↔ macros ↔ tool ↔ your code ↔ kernel).
+
 This can be **very useful** especially if you plan to contribute or build non-trivial eBPF programs.
 
 
@@ -420,37 +442,41 @@ This can be **very useful** especially if you plan to contribute or build non-tr
 
 # Aya Crate relations:
 
- *Aya* architecture,how all crates in the GitHub repo relate to each other, and how user-space and kernel-space pieces communicate.
+ *Aya* architecture,how all crates in the GitHub repo relate to each other, and how user-space and 
+ kernel-space pieces communicate.
 
-I’ll give you **(1) a high-level diagram**, **(2) a folder-accurate detailed diagram**, and **(3) a data-flow diagram for a real eBPF program**.
+I’ll give you 
+    **(1) a high-level diagram**, 
+    **(2) a folder-accurate detailed diagram**, and 
+    **(3) a data-flow diagram for a real eBPF program**.
 
 ---
 
 ## **1. High-Level Aya Architecture Diagram**
 
 ```
-                    ┌─────────────────────────────────────────┐
+                    ┌──────────────────────────────────────────┐
                     │                 Userspace                │
                     │ (your Rust application using Aya crate)  │
-                    └─────────────────────────────────────────┘
+                    └──────────────────────────────────────────┘
                                       │
                                       ▼
-                   ┌──────────────────────────────────┐
+                   ┌───────────────────────────────────┐
                    │               aya/                │
                    │  - Program loading (BPF_PROG_LOAD)│
                    │  - Map creation & interaction     │
                    │  - BTF & ELF parsing (via aya-obj)│
                    │  - Attaching (kprobe, xdp, tp…)   │
-                   └──────────────────────────────────┘
+                   └───────────────────────────────────┘
                                       │
                                       │ uses
                                       ▼
                    ┌──────────────────────────────────┐
                    │             aya-obj/             │
-                   │ - Parses eBPF ELF files           │
-                   │ - Handles relocations             │
-                   │ - Reads BTF types                 │
-                   │ - Extracts map definitions        │
+                   │ - Parses eBPF ELF files          │
+                   │ - Handles relocations            │
+                   │ - Reads BTF types                │
+                   │ - Extracts map definitions       │
                    └──────────────────────────────────┘
                                       │
                                       │
@@ -480,31 +506,31 @@ I’ll give you **(1) a high-level diagram**, **(2) a folder-accurate detailed d
                    ┌──────────────────────────────────┐
                    │          aya-ebpf/ (no_std)      │
                    │ - eBPF program Rust runtime      │
-                   │ - Map definitions for eBPF side   │
-                   │ - BPF helper FFI wrappers         │
+                   │ - Map definitions for eBPF side  │
+                   │ - BPF helper FFI wrappers        │
                    └──────────────────────────────────┘
                                       ▲
                                       │ macros generate
                                       │ entrypoints, sections
                                       ▼
-                   ┌──────────────────────────────────┐
+                   ┌─────────────────────────────────┐
                    │       aya-ebpf-macros/          │
                    │ - #[map], #[xdp], #[kprobe], …  │
-                   │ - Generates metadata for loader  │
-                   └──────────────────────────────────┘
+                   │ - Generates metadata for loader │
+                   └─────────────────────────────────┘
                                       ▲
                                       │
                    ┌──────────────────────────────────┐
                    │       aya-log-ebpf-macros/       │
-                   │   Logging macros for eBPF code    │
+                   │   Logging macros for eBPF code   │
                    └──────────────────────────────────┘
                                       ▲
                                       │ BTF-based bindings
                                       ▼
                    ┌──────────────────────────────────┐
                    │             aya-tool/            │
-                   │ - Generates Rust bindings for     │
-                   │   kernel structs using BTF        │
+                   │ - Generates Rust bindings for    │
+                   │   kernel structs using BTF       │
                    └──────────────────────────────────┘
 ```
 
