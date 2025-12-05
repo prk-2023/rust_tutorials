@@ -267,3 +267,209 @@ int handler(...) {
 **Key takeaway:**
 Kprobes don't ADD checks to the kernel—they REPLACE instructions temporarily, letting the HARDWARE do the
 checking for free!
+
+------------------------------------------------------------------------------------------------------------
+# Compair Kprobe with XDP:
+
+
+Let's break it down and visualize the differences between **Kprobe** and **XDP** using kernel code examples 
+and text-based flow diagrams.
+
+### 1. **Kprobe Example (Kernel Probe)**
+
+**Purpose**: 
+    Insert a probe at a specific kernel func to capture events, inspect or modify kernel behavior during runtime.
+
+**Kernel Code Example**:
+
+```c
+#include <linux/kprobe.h>
+#include <linux/module.h>
+#include <linux/init.h>
+
+static struct kprobe kp = {
+    .symbol_name = "sys_clone",  // Function to probe (sys_clone in this case)
+    .pre_handler = kprobe_handler,  // Pre-handler function when the probe is hit
+};
+
+// Pre-handler function to be invoked on each probe hit
+static int kprobe_handler(struct kprobe *p, struct pt_regs *regs)
+{
+    printk(KERN_INFO "Kprobe triggered! Process ID: %d\n", current->pid);
+    return 0;  // Continue execution of the probed function
+}
+
+static int __init kprobe_init(void)
+{
+    int ret;
+    
+    // Register the probe
+    ret = register_kprobe(&kp);
+    if (ret < 0) {
+        printk(KERN_ALERT "Registering kprobe failed\n");
+        return ret;
+    }
+
+    printk(KERN_INFO "Kprobe registered successfully\n");
+    return 0;
+}
+
+static void __exit kprobe_exit(void)
+{
+    unregister_kprobe(&kp);
+    printk(KERN_INFO "Kprobe unregistered\n");
+}
+
+module_init(kprobe_init);
+module_exit(kprobe_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("Kprobe Example");
+```
+
+### Explanation:
+
+* **Kprobe** is registered on the `sys_clone` function (which is responsible for creating processes).
+* When the function `sys_clone` is called, the `kprobe_handler` is invoked, logging the Process ID (`PID`).
+* The `pre_handler` is used here, meaning the probe is triggered before the actual kernel function is executed.
+
+### Flow Diagram for Kprobe:
+
+```
+            +----------------------+
+            |  sys_clone function  |  <-- Function to probe
+            +----------------------+
+                        |
+                (Execution of probe)
+                        |
+            +----------------------+
+            |    kprobe_handler    |  <-- Custom handler invoked
+            +----------------------+
+                        |
+           (Inspect/modifies kernel state)
+                        |
+          +------------------------+
+          |    Continue execution  |  <-- Proceed with sys_clone function
+          +------------------------+
+```
+
+### 2. **XDP Example (eXpress Data Path)**
+
+**Purpose**:
+
+Process network packets directly at the network driver level, before they enter the kernel’s network stack.
+
+
+**Kernel Code Example**:
+
+```c
+#include <linux/bpf.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/udp.h>
+#include <linux/if_link.h>
+#include <linux/netdevice.h>
+#include <linux/module.h>
+
+static int xdp_prog_fd = -1;
+
+// BPF program attached to the network interface
+SEC("xdp")
+int xdp_prog(struct __sk_buff *skb)
+{
+    // Just an example: Drop the packet (no forwarding)
+    return XDP_DROP;
+}
+
+char _license[] SEC("license") = "GPL";
+
+static int __init xdp_init(void)
+{
+    struct bpf_program *prog;
+    struct bpf_object *obj;
+
+    // Load the BPF program
+    obj = bpf_object__open_file("xdp_prog.o", NULL);
+    if (IS_ERR(obj)) {
+        pr_err("BPF object load failed\n");
+        return PTR_ERR(obj);
+    }
+
+    prog = bpf_program__next(NULL, obj);
+    bpf_program__set_type(prog, BPF_PROG_TYPE_XDP);
+
+    // Attach the XDP program to a network interface (eth0 here)
+    bpf_set_link_xdp_fd(0, bpf_program__fd(prog), XDP_FLAGS_UPDATE_IF_NOEXIST);
+    
+    pr_info("XDP program loaded successfully\n");
+    return 0;
+}
+
+static void __exit xdp_exit(void)
+{
+    // Remove the XDP program from the interface
+    bpf_set_link_xdp_fd(0, -1, 0);
+    pr_info("XDP program removed\n");
+}
+
+module_init(xdp_init);
+module_exit(xdp_exit);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Your Name");
+MODULE_DESCRIPTION("XDP Example");
+```
+
+### Explanation:
+
+* **XDP** uses an eBPF program (`xdp_prog`) attached to a network interface.
+* The program drops all incoming packets (by returning `XDP_DROP`), providing high-performance filtering 
+  before the packet enters the kernel's networking stack.
+* The XDP program is loaded into the kernel and attached to a network device (e.g., `eth0`) at boot or
+  module load time.
+
+### Flow Diagram for XDP:
+
+```
++------------------------+
+| Network Interface      |  <-- Device that receives packets (e.g., eth0)
++------------------------+
+            |
+      (Packet arrives)
+            |
++------------------------+
+| XDP Program (eBPF)     |  <-- XDP program intercepts packet
+| (e.g., XDP_DROP)       |  <-- Drops or processes the packet
++------------------------+
+            |
+    (Decision: Drop/Forward)
+            |
++------------------------+
+| Network Stack          |  <-- Regular kernel network stack (skipped if dropped)
++------------------------+
+```
+
+### Key Differences in Flow:
+
+1. **Kprobe**:
+
+   * Hooks into specific kernel functions (like `sys_clone`).
+   * Executes a custom handler when the function is called.
+   * It's used for **debugging/monitoring** kernel behavior, **not directly related to networking**.
+2. **XDP**:
+
+   * Hooks into the **networking driver layer**, processing packets **before** they hit the kernel's 
+     networking stack.
+   * Can drop, modify, or redirect packets for performance reasons.
+   * It's used for **high-performance packet filtering** and **networking optimizations**.
+
+### Summary:
+
+* **Kprobe** provides **dynamic tracing** for debugging kernel code, giving you the ability to inspect and 
+  modify kernel behavior at runtime.
+* **XDP** provides **high-speed networking optimizations** by allowing you to process packets at the 
+  earliest point in the network stack.
+
+Both technologies serve different purposes but leverage kernel hooks to achieve their goals: **Kprobe** for 
+kernel observability and **XDP** for performance-driven network packet processing.
