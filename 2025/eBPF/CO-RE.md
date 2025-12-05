@@ -1,5 +1,7 @@
 # CO-RE:
 
+Ref: https://eunomia.dev/tutorials/
+ 
 ## What is CO-RE?
 
 **CO-RE** stands for **Compile Once, Run Everywhere**, and it's a feature in the context of **eBPF 
