@@ -3,12 +3,26 @@
 
 ## Intro:
 
+Attributes are compiler "Instructions" or hints attached to code, telling Rust how to treat that code
+without changing the logic itself.
+
 - **attributes** are metadata or annotations that provide additional information to the compiler and other 
   tools. 
 
 - They allow you to control various aspects of how Rust code behaves, such as modifying compiler behavior,
   enabling or disabling certain warnings, controlling visibility, or configuring libraries. 
   Attributes are placed above an item (function, struct, enum, etc.) and are prefixed with a `#` symbol. 
+
+- Attributes allow to *Control Various aspects of code behavior* such as :
+    - Modifying *compiler behavior* (ex: #[inline(always)], #[no_mangle])
+    - enabling/disabling warning and lints (ex: #[allow(dead_code)]
+    - Control condition compilation (ex: #[cfg(target_arch = "bpf")], #[cfg(target_os = "linux")])
+    - Automatically generate code or implement traits (ex: #[derive(Debug, Clone)])
+    - Providing documentation hints (#[doc = "Some doc text"])
+
+- Syntax: 
+    - #[attribute] → Outer attribute for an item.
+    - #![attribute] → Inner attribute for a module or crate.
 
 There are two primary types of attributes in Rust:
 
@@ -17,6 +31,7 @@ There are two primary types of attributes in Rust:
 
 2. **Outer Attributes**: 
     These apply directly to items and are prefixed with `#`.
+
 
 ### Common Uses of Rust Attributes
 
