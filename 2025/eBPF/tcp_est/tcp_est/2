@@ -1,0 +1,24 @@
+use aya::programs::SockOps;
+use aya::{include_bytes_aligned, eBpf};
+use aya_log::BpfLogger;
+use std::convert::TryInto;
+
+fn main() -> Result<(), anyhow::Error> {
+    // Load eBPF object file
+    let mut bpf = Bpf::load(include_bytes_aligned!(
+        "../target/bpfel-unknown-none/debug/sockops"
+    ))?;
+
+    // Initialize logging (prints from the eBPF program)
+    if let Err(e) = BpfLogger::init(&mut bpf) {
+        eprintln!("failed to initialize eBPF logger: {}", e);
+    }
+
+    // Load and attach sock_ops program
+    let prog: &mut SockOps = bpf.program_mut("sockops_program")?.try_into()?;
+
+    prog.attach()?;
+
+    println!("sock_ops program attached.");
+    Ok(())
+}

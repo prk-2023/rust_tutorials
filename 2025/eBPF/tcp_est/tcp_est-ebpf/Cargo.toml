@@ -1,0 +1,17 @@
+[package]
+name = "tcp_est-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+tcp_est-common = { path = "../tcp_est-common" }
+
+aya-ebpf = { version = "0.1.1" }
+aya-log-ebpf = { version = "0.1.0" }
+
+[build-dependencies]
+which = "8.0.0"
+
+[[bin]]
+name = "tcp_est"
+path = "src/main.rs"
