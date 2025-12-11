@@ -3,10 +3,15 @@
 
 ## What is Aya:
 
-Aya is a Rust library for developing `eBPF` based programs for Linux kernel. 
+Aya is a collection of crates designed to work with `eBPF` programs. It's a powerful framework that provides
+high-level abstraction and interfaces for working with `eBPF`, enabling developers to *write*, *load* and
+*interact* with `eBPF` programs directly from Rust. 
+
+At its core the main Aya crate provides all that is required for developing `eBPF` based programs for Linux
+kernel.
 
 It facilitates the development of `eBPF` programs with its family of crates `aya_xyz`. 
-Its totally independent of many standard `eBPF` related libraries such as `libbpf`, `BCC` and is implemented
+Its totally independent of many standard `eBPF` related libraries such as `libbpf`, `BCC`, and implemented
 entirely in Rust, using only `libc` crate to execute system calls (`bpf()`).
 
 Key Features:
@@ -25,6 +30,17 @@ Key Features:
     No dependency on kernel headers or C tool-chains, this makes deployment easier and builds faster.
 
 Reference: `README.md`, `aya/README.md`
+
+The main entry point for user-space interactions is struct/type `Ebpf` ( for version 0.13.1, older version 
+used to be `Bpf` ). This object is responsible for loading the eBPF Object file (bpf.o bytecode program), 
+parsing the program and maps it contains, loading them into the kernel, and providing methods to interact
+with them.
+
+The `aya crate` has dedicated module for this `aya::programs` which contain structs and methods for all the
+different `eBPF` program types ( ex: Kprob/Kretprob, Xdp, Tracepoings ) and for loading and attaching them
+to the kernel hooks.
+The `aya::maps` Contain types and methods for interacting with various `BPF map` types ( ex: HashMap, Array,
+PerfEventArray, RingBuf, ) to exchange data between user-space and kernel space.
 
 ### Project Architecture: 
 

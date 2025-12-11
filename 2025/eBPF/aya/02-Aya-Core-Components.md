@@ -48,6 +48,38 @@ Sources:
 `aya/src/programs/mod.rs:1-39`,
 `aya/src/sys/bpf.rs:1-45`
 
+While the core functionality is centered on the `aya` and `ebpf/ebpf`(ebpf/aya-ebpf) crates the framework is
+composed of several crates that work together:
+
+- `aya`: The main user-space library for loading, managing and interacting with `eBPF` programs in the Linux 
+  kernel. This crate has all the modules  for loading, parsing, maps and interacting with kernel eBPF
+  programs:
+    - `aya::programs`: Contains structs and methods for all the different eBPF program types (Kprobe, Xdp,
+      Tracepoint )and for loading and attaching them to kernel hook points.
+    - `aya::maps`: Contains types and methods for interacting with the various BPF map types (ex: HashMap,
+      Array, PerfEventArray, RingBuf ..)
+
+- `ays-ebpf`: This crate is used for writing kernel-space `eBPF` programs that run in the kernels VM. This
+  crate provides necessary context and primitives with a `#!no_std` environment (i.e no std library)
+
+- `aya-tools`: A command line tool for generating Rust bindings to kernel types using `bpftool`, which is
+  crucial for CO-RE `eBPF` programs.
+
+Aya uses 'netlink' for communicate with the kernel but this are abstracted for user for writing the eBPF
+programs.( since XDP often requires using Netlink to configure  the network stack, ex: to create a qdisc or
+load XDP program into network interface ), the `aya` crate handles these netlink interactions within its 
+`programs::tc`, `programs::xdp` modules using functions to manage the network interface setup without the
+user needing to manually construct Netlink messages. ( it often integrates with other Rust based Netlink
+crates )
+
+The `aya` crate also has `aya::sys` module which is "low-level" core that contains a collection of wrappers
+and constants for exchanging the actual `bpf()` **system call** and other related system calls using the
+Rust standard library Foreign Function Interface (FFI) via the `libc` crate.
+
+==> some features like netlink communications and other functionalities and logic required for eBPF programs
+are encapsulated within the `aya` user-space crate's module structure (ex: `aya::Ebpf, aya::programs,
+aya::maps, aya::sys` ...)
+
 ### Key Components:
 
 #### - `EbpfLoader` :
