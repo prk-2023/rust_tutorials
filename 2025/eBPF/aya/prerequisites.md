@@ -1,9 +1,8 @@
 # Rust based eBPF Programming: ( Prerequisites )
 
-
 ## Essentials in Short:
-In short, topics that are essential to work with `eBPF` programs includes both user-space and
-kernel-space programming, below is a short list of essential that require to have understanding of:
+In short, the topics essential for working with `eBPF` programs include both user-space and kernel-space 
+programming. Below is a short list of the key topics that require a solid understanding:
 
 - What are Hooks  and how they work
 - What are tracepoints
