@@ -1,10 +1,9 @@
-# Rust based eBPF Programming: ( .. Prerequisites .. )
+# Rust based eBPF Programming: ( Prerequisites )
 
 
-
-
-In short the topics that are essential to work to program eBPF programs includes both user-space and
-kernel-space programming, topics that are essential or have understanding are:
+## Essentials in Short:
+In short, topics that are essential to work with `eBPF` programs includes both user-space and
+kernel-space programming, below is a short list of essential that require to have understanding of:
 
 - What are Hooks  and how they work
 - What are tracepoints
@@ -19,7 +18,7 @@ kernel-space programming, topics that are essential or have understanding are:
 
 
 ## Main Topics: 
-eBPF is an advanced and complex area to work with.
+`eBPF` is an advanced and complex area to work with.
 
 Below are some background on each of the topics, provide key concepts and how they connect 
 with Aya, and mention any tools and system calls that could be useful.
@@ -30,9 +29,9 @@ with Aya, and mention any tools and system calls that could be useful.
   behavior.
 * Examples of hooks include:
 
-  * XDP (eXpress Data Path) for network packet processing.
-  * TC (Traffic Control) for network traffic shaping.
-  * tracepoints, **kprobes**, **uprobes**, and **perf** events for tracing events in the kernel.
+  * **XDP** (eXpress Data Path) for network packet processing.
+  * **TC**(Traffic Control) for network traffic shaping.
+  * **tracepoints**, **kprobes**, **uprobes**, and **perf** events for tracing events in the kernel.
 * Aya provides abstractions to load eBPF programs at these hooks using the `Bpf` object.
 
 ### 2. What are Tracepoints
@@ -44,9 +43,9 @@ with Aya, and mention any tools and system calls that could be useful.
 
 ### 3. What is XDP
 
-* XDP (eXpress Data Path) is a framework for high-performance packet processing, allowing you to run
+* **XDP** (eXpress Data Path) is a framework for high-performance packet processing, allowing you to run
   eBPF programs at the earliest point in the Linux networking stack (on the network interface card driver).
-* XDP enables features like:
+* **XDP** enables features like:
 
   * DDoS Mitigation
   * Traffic Filtering
@@ -87,11 +86,11 @@ with Aya, and mention any tools and system calls that could be useful.
 
 * The general eBPF program lifecycle includes:
 
-  * Loading: Load the eBPF program into the kernel using system calls like `bpf()`.
-  * Verification: eBPF programs are verified for safety and correctness before execution.
-  * Compilation: In some cases, eBPF code needs to be compiled into a form compatible with the kernel 
+  * **Loading**: Load the eBPF program into the kernel using system calls like `bpf()`.
+  * **Verification**: eBPF programs are verified for safety and correctness before execution.
+  * **Compilation**: In some cases, eBPF code needs to be compiled into a form compatible with the kernel 
     (via LLVM).
-  * Attachment: Programs are then attached to hooks (e.g., tracepoints, XDP, etc.).
+  * **Attachment**: Programs are then attached to hooks (e.g., tracepoints, XDP, etc.).
 * Aya abstracts most of these steps, providing high-level functions to load, verify, and attach programs.
 
 ### 7. What System Calls are Supported
@@ -115,14 +114,14 @@ with Aya, and mention any tools and system calls that could be useful.
   * Attaching programs to kernel subsystems.
 * Other eBPF libraries include:
 
-  * libbpf (C-based, often used directly in kernel-level code or through higher-level bindings).
+  * "libbpf" (C-based, often used directly in kernel-level code or through higher-level bindings).
   * BCC (BPF Compiler Collection, a higher-level interface, primarily used with Python).
 
 ### 9. CO-RE, BTF: How BTF Works
 
-* CO-RE (Compile Once, Run Everywhere) allows you to write eBPF programs that are agnostic to kernel version
+* **CO-RE** (Compile Once, Run Everywhere) allows you to write eBPF programs that are agnostic to kernel version
   differences, making them portable.
-* BTF (BPF Type Format) is a debugging and metadata format that describes types in eBPF programs. 
+* **BTF** (BPF Type Format) is a debugging and metadata format that describes types in eBPF programs. 
   BTF helps with kernel version agnosticism and enables introspection.
 * Aya supports BTF via the `aya-obj` crate, allowing you to parse and manipulate BTF data and work with 
   BTF-based features like **CO-RE**.
@@ -136,11 +135,11 @@ with Aya, and mention any tools and system calls that could be useful.
 
 ### 10. Misc: Parsing, Loading, LLVM, Async
 
-* LLVM: For compiling eBPF programs, the `clang`/`llvm` toolchain is typically used. 
+* **LLVM**: For compiling eBPF programs, the `clang`/`llvm` toolchain is typically used. 
   Aya can interface with programs that are already compiled into BPF bytecode (using LLVM or `clang`).
-* Parsing: Aya can help load and parse BPF programs from object files, and the `aya-obj` crate helps with 
+* **Parsing**: Aya can help load and parse BPF programs from object files, and the `aya-obj` crate helps with 
   handling BTF files and other kernel data structures.
-* Async: Aya provides async support, which is especially useful if you're writing tools that interact with 
+* **Async**: Aya provides async support, which is especially useful if you're writing tools that interact with 
   kernel data in a non-blocking way (e.g., monitoring BPF maps asynchronously or processing network packets 
   in an async runtime like `tokio`).
 
