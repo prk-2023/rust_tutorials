@@ -107,9 +107,9 @@ Aya supports a rich variety of program types and map structures:
 
 For detailed information about:
 
-- Different Program Types check ![Program Types](./03-Aya-Program-Types.md)
+- Different Program Types check [Program Types](./03-Aya-Program-Types.md)
 
-- Map Types and data structures ![Maps and DataStructures](./04-Aya-Maps-and-Data-Structures.md)
+- Map Types and data structures [Maps and DataStructures](./04-Aya-Maps-and-Data-Structures.md)
 
 Sources: `README.md:76-96`, `aya/README.md:74-92`
 
@@ -121,7 +121,7 @@ user-space.
 
 ![Logging System](./img/04-Logging-System.png) 
 
-For more details on Logging systems refer to ![Logging System](./05-Aya-Logging.md)
+For more details on Logging systems refer to [Logging System](./05-Aya-Logging.md)
 
 Sources:  `aya-log/Cargo.toml:1-33`,`aya-log-common/Cargo.toml:1-23`,`aya-log-ebpf-macros/Cargo.toml:1-25`,
 `aya-log-parser/Cargo.toml:1-24`
@@ -132,7 +132,7 @@ Aya includes development, testing and Code generation:
 
 ![Development and Testing](./img/05-Development-Testing.png) 
 
-For more info on development and testing : ![Development and Testing](./06-Aya-Development-and-testing.md) 
+For more info on development and testing : [Development and Testing](./06-Aya-Development-and-testing.md) 
 
 Sources: `xtask/Cargo.toml:1-33`, `test/integration-test/Cargo.toml:1-50`
 
@@ -160,7 +160,7 @@ let cgroup = File::open("/sys/fs/cgroup/unified")?;
 ingress.attach(cgroup, CgroupSkbAttachType::Ingress, CgroupAttachMode::AllowOverride)?;
 ```
 
-For more detailed API documentation, see ![API Reference](07-Aya-API-Reference.md)
+For more detailed API documentation, see [API Reference](./07-API-Reference.md)
 
 Sources: `README.md:76-96`, `aya/README.md:74-92`
 

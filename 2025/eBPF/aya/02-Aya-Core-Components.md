@@ -36,7 +36,7 @@ architecture.
 
 ## Architecture Overview:
 
-Core designed to provide a clean, type-sage interface to working with `eBPF` programs.
+Core designed to provide a clean, type-safe interface to working with `eBPF` programs.
 The main component work together to handle the loading, verification, attachment and data exchange processes
 required for `eBPF` programs.
 
