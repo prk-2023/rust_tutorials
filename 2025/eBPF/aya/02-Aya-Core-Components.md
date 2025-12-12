@@ -194,13 +194,13 @@ Sources:
 The core components of Aya sub-system provide a comprehensive framework to work with `eBPF` programs with
 focus on type safety, ergonomics, and performance.
 
- The main structures (Ebpf, EbpfLoader) and subsystems (Programs and Maps) work together to provide a clean
- API for loading, attaching, and interacting with eBPF programs. The system interface layer handles the 
- low-level communication with the kernel through system calls, abstracting away the complexities of the 
- BPF syscall.
+ The main structures (**`Ebpf`**, **`EbpfLoader`**) and subsystems (**Programs** and **Maps**) work together
+ to provide a clean API for loading, attaching, and interacting with eBPF programs. 
+ The system interface layer handles the low-level communication with the kernel through system calls, 
+ abstracting away the complexities of the **BPF** syscall.
 
 Understanding these core components provides the foundation for working with the more specialized parts of
-the Aya library, such as specific program types and map implementation
+the Aya library, such as specific program types and map implementation.
 
 
 
