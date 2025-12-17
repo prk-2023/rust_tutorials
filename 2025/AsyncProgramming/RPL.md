@@ -81,7 +81,52 @@ Key elements of Rust async programming are *futures* and Rust's `async` and `awa
 Rust provides a `Future` trait as a building block so that many different async operations can be
 implemented with different data structures but with a common interface. 
 
-=> So in Rust futures are types that implement a `Futures` trait. Each future holds its oen information
+=> So in Rust futures are types that implement a `Futures` trait. Each future holds its own information
 about the progress that has been made and what "ready" means.
+
+How to use:
+
+- You can apply `async` keyword to *blocks* or *functions* to specify that they can be interrupted and
+  resumed.
+
+- Within an `async` block of `async` function, you can use the `await` keyword to await a *future*, that is
+  wait for it to become ready. 
+
+- Any point where you await a future within an async block or function is potential spot for that async
+  block or function to pause and resume.
+
+- The process of checking with a future to see if its value is available yet is called **polling**.
+
+When writing async Rust, we use `async` and `await` keyword most of the time. Rust compiles them into
+equivalent code using `Future` trait much as it compiles `for` loops into equivalent `Iterator` trait. 
+
+As Rust provides the `Future` trait, though, you can also implement it for your own data types when there is
+a need to. 
+
+This all sounds abstract and the better way to understand is to write our own async programs:
+
+NOTE: TRPL chapter used a `trpl` crate which consists of :
+    - re-exports all the types, traits and functions you need primarily from the `futures` and `tokio`
+      crates.
+
+## First async program
+
+The `futures` crate is the official home for experimentation for async code and its actually where  the
+`Future` trait was originally designed. 
+
+`Tokio` is the most widely used async runtime in Rust today, especially for web applications. There are
+other great runtimes out there and are more suitable for different purposes. 
+
+The `trpl` crate uses `Tokio` crate as its most widely used and tested. 
+
+```text 
+    $ cargo new hello-async
+    $ cd hello-async
+    $ cargo add trpl
+```
+
+Example 1: 
+    Write a function that takes one page URL as a parameter, makes a request to it, and returns the text of
+    the title element.
 
 
