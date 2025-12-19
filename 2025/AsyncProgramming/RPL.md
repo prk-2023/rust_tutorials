@@ -265,10 +265,10 @@ characteristics.
 - APIs for concurrency using async may resemble those for threads, they often exhibit different behaviors
   and performance metrics. 
 
-#### Creating a New Task with `spawn_task`
+#### - Creating a New Task with `spawn_task`
 
-The ex mirrors the thread-based approach of counting up using threads, but utilizes async programming 
-instead. 
+In the example below we try to mimic the thread-based approach of counting up using threads, but utilizes 
+async programming instead. 
 
 The `trpl` crate provides a `spawn_task` function, akin to the `thread::spawn` API, and an async version
 of the sleep function (`trpl::sleep`). 
@@ -276,7 +276,10 @@ of the sleep function (`trpl::sleep`).
 Example Code: Counting with Async
 
 ```rust 
-extern crate trpl; // required for mdbook test
+//rust till 2015 edition below line is required
+//extern crate trpl; // required for mdbook test
+// rust 2018 onwards
+use trpl; // 2018 allows to find crates from Cargo.toml  and link/make available. 
 
 use std::time::Duration;
 
@@ -304,7 +307,7 @@ one within the `spawn_task` and the other directly in the `main` async block.
 
 The output may vary in order due to the concurrent nature of the tasks.
 
-*Ensuring Task Completion*
+#### - Ensuring Task Completion
 
 Initially, the async task spawned by `spawn_task` may terminate prematurely when the main function 
 completes. 
@@ -379,8 +382,7 @@ fn main() {
 This demo's that using `trpl::join` allows for fair execution of both futures, resulting in a predictable
 output order, unlike the thread-based approach.
 
-**Message Passing Between Tasks**
-**Sending Data with Async Channels**
+#### - Message Passing Between Tasks (**Sending Data with Async Channels**)
 
 How to share data between futures using message passing. 
 
@@ -406,7 +408,7 @@ fn main() {
 - In example, a message is sent and received within a single async block. 
 - The recv method does not block but instead returns a future that must be awaited.
 
-**Sending Multiple Messages**
+#### - Sending Multiple Messages
 
 To illustrate sending multiple messages, we modify the previous example to include a loop that sends 
 messages with delays in between.
@@ -442,7 +444,7 @@ fn main() {
 - The messages are sent in a loop, but they arrive all at once after the total delay, demonstrating that
   everything in an async block executes linearly.
 
-**Achieving Concurrency with Separate Async Blocks**
+#### - Achieving Concurrency with Separate Async Blocks
 
 To achieve the desired behavior where messages are received at intervals, we separate the sending and 
 receiving logic into distinct async blocks.
@@ -484,7 +486,7 @@ fn main() {
 This structure allows the sending and receiving tasks to execute concurrently, resulting in messages being 
 printed at the correct intervals.
 
-**Moving Ownership into Async Blocks**
+#### - Moving Ownership into Async Blocks
 
 To ensure the program exits gracefully, we can move ownership of the sender into the async block, allowing 
 it to be dropped when the block completes.
@@ -526,7 +528,7 @@ fn main() {
 - The `async move` keyword is used to ensure that the sender is dropped after sending the last message,
   allowing the program to terminate correctly.
 
-**Joining Multiple Producers with join! Macro**
+#### - Joining Multiple Producers with join! Macro
 
 The async channel supports multiple producers, and we can clone the sender to allow multiple async blocks 
 to send messages.
@@ -583,12 +585,610 @@ fn main() {
 
 In this example, two producers send messages at different intervals, demonstrating the flexibility of async 
 programming in Rust. 
+
 The messages are received in the order they are sent, showcasing the efficiency of the async channel.
 
 Summing Up:
 - The differences between threads and futures, the mechanics of creating and managing tasks, and 
   the intricacies of message passing between tasks. 
 
-- The above concepts should help developer to leverate async programming to build concurrent applications in
+- The above concepts should help developer to leverage async programming to build concurrent applications in
   Rust.
+
+## Working with many futures:
+
+### Yielding Control to the Runtime: 
+
+Yielding control back to runtime at await, preventing one future from blocking others.
+
+How Rust runtime manages control flow during asynchronous operations: 
+At each `await` point, the runtime can pause the current task and switch to another if the awaited future is
+not ready. 
+
+i.e: Rust only returns control to the runtime at these `await` points, meaning that any operations 
+performed between them execute synchronously. This behavior can lead to a situation where one future may 
+block others from progressing, a phenomenon known as "starvation."
+
+#### - Starvation in Async Tasks
+
+Blocking Operations
+
+If an asynchronous block performs extensive work without yielding control back to the runtime, it can 
+prevent other futures from making progress. This is particularly problematic in scenarios involving 
+long-running tasks or expensive computations. 
+
+Ex: Simulating Long-Running Operations
+
+```rust 
+use trpl;
+use std::{thread, time::Duration};
+
+fn main() {
+    trpl::block_on(async {
+        // We will call `slow` here later
+    });
+}
+
+fn slow(name: &str, ms: u64) {
+    thread::sleep(Duration::from_millis(ms));
+    println!("'{name}' ran for {ms}ms");
+}
+```
+- `std::thread::sleep` is used to simulate a slow operation. This function blocks the current thread,
+  mimicking real-world long-running tasks. 
+
+
+CPU-Bound work in pair of futures:
+```rust 
+use trpl;
+
+use std::{thread, time::Duration};
+
+fn main() {
+    trpl::block_on(async {
+        let a = async {
+            println!("'a' started.");
+            slow("a", 30);
+            slow("a", 10);
+            slow("a", 20);
+            trpl::sleep(Duration::from_millis(50)).await;
+            println!("'a' finished.");
+        };
+
+        let b = async {
+            println!("'b' started.");
+            slow("b", 75);
+            slow("b", 10);
+            slow("b", 15);
+            slow("b", 350);
+            trpl::sleep(Duration::from_millis(50)).await;
+            println!("'b' finished.");
+        };
+
+        trpl::select(a, b).await;
+    });
+}
+
+fn slow(name: &str, ms: u64) {
+    thread::sleep(Duration::from_millis(ms));
+    println!("'{name}' ran for {ms}ms");
+}
+```
+- `slow` function blocks the current thread for a specified duration, representing a long-running or
+  blocking operation.
+
+When the code is executed, it produces output indicating that future a completes all its blocking operations
+before future b starts, highlighting the starvation issue. 
+
+The output confirms that the futures do not interleave as expected, emphasizing the need for `await` points
+to allow concurrent execution.
+
+#### - Introducing Await Points for Concurrency
+
+Adding Await Points
+
+The text proposes a solution to the starvation problem by introducing await points using `trpl::sleep`. 
+This adjustment allows the futures to yield control back to the runtime between slow operations, enabling 
+interleaved execution. 
+
+The modified code demonstrates this interleaving, resulting in a more balanced execution of both futures.
+```rust 
+use trpl;
+use std::{thread, time::Duration};
+
+fn main() {
+    trpl::block_on(async {
+        let one_ms = Duration::from_millis(1);
+
+        let a = async {
+            println!("'a' started.");
+            slow("a", 30);
+            trpl::sleep(one_ms).await;
+            slow("a", 10);
+            trpl::sleep(one_ms).await;
+            slow("a", 20);
+            trpl::sleep(one_ms).await;
+            println!("'a' finished.");
+        };
+
+        let b = async {
+            println!("'b' started.");
+            slow("b", 75);
+            trpl::sleep(one_ms).await;
+            slow("b", 10);
+            trpl::sleep(one_ms).await;
+            slow("b", 15);
+            trpl::sleep(one_ms).await;
+            slow("b", 350);
+            trpl::sleep(one_ms).await;
+            println!("'b' finished.");
+        };
+
+        trpl::select(a, b).await;
+    });
+}
+
+fn slow(name: &str, ms: u64) {
+    thread::sleep(Duration::from_millis(ms));
+    println!("'{name}' ran for {ms}ms");
+}
+```
+
+#### - Using `yield_now`
+
+Yielding Control with `yield_now`
+
+`trpl::sleep` introduces unnecessary delays, the section suggests using `trpl::yield_now` to yield control
+without the overhead of sleeping. 
+The updated code below replaces `trpl::sleep` with `trpl::yield_now`, allowing for faster execution while 
+still enabling the runtime to manage task switching effectively.
+
+```rust 
+use std::{thread, time::Duration};
+
+fn main() {
+    trpl::block_on(async {
+        let a = async {
+            println!("'a' started.");
+            slow("a", 30);
+            trpl::yield_now().await;
+            slow("a", 10);
+            trpl::yield_now().await;
+            slow("a", 20);
+            trpl::yield_now().await;
+            println!("'a' finished.");
+        };
+
+        let b = async {
+            println!("'b' started.");
+            slow("b", 75);
+            trpl::yield_now().await;
+            slow("b", 10);
+            trpl::yield_now().await;
+            slow("b", 15);
+            trpl::yield_now().await;
+            slow("b", 350);
+            trpl::yield_now().await;
+            println!("'b' finished.");
+        };
+
+        trpl::select(a, b).await;
+    });
+}
+
+fn slow(name: &str, ms: u64) {
+    thread::sleep(Duration::from_millis(ms));
+    println!("'{name}' ran for {ms}ms");
+}
+```
+This approach clarifies the intent and can be more efficient than using sleep, as it avoids the minimum 
+sleep duration imposed by timers.
+
+#### - Cooperative Multitasking and Performance Considerations
+
+Above examples show that Rust Asynchronous programming can be beneficial even for CPU-bound tasks, as it 
+allows for cooperative multitasking. Each future is responsible for yielding control to avoid blocking other
+tasks. 
+However, excessive yielding may lead to performance degradation, and developers should measure performance 
+to identify bottlenecks.
+
+### Building Custom Async Abstractions
+
+Creating a Timeout Function
+
+Building custom asynchronous abstractions, specifically a timeout function that can be used to *limit the 
+execution time of a future*. 
+
+The proposed API for the timeout function is outlined, requiring it to be asynchronous and accept a future 
+and a maximum duration.
+
+Implementing the Timeout Function
+
+```rust  
+use std::time::Duration;
+
+use trpl::Either;
+
+// --snip--
+
+fn main() {
+    trpl::block_on(async {
+        let slow = async {
+            trpl::sleep(Duration::from_secs(5)).await;
+            "Finally finished"
+        };
+
+        match timeout(slow, Duration::from_secs(2)).await {
+            Ok(message) => println!("Succeeded with '{message}'"),
+            Err(duration) => {
+                println!("Failed after {} seconds", duration.as_secs())
+            }
+        }
+    });
+}
+
+async fn timeout<F: Future>(
+    future_to_try: F,
+    max_time: Duration,
+) -> Result<F::Output, Duration> {
+    match trpl::select(future_to_try, trpl::sleep(max_time)).await {
+        Either::Left(output) => Ok(output),
+        Either::Right(_) => Err(max_time),
+    }
+}
+```
+The timeout function checks the result of `trpl::select` and returns either the successful output or an 
+error indicating the timeout duration.
+
+The function uses `trpl::select` to race the provided future against a timer created with `trpl::sleep`. 
+Depending on which completes first, the function returns either the result of the future or an error 
+indicating that the timeout elapsed.
+
+When the timeout function is executed with a slow future, the output reflects the failure to complete within 
+the specified duration, demonstrating the function's effectiveness.
+
+
+## Streams: Futures in Sequence:
+
+### Introduction to Asynchronous Streams
+
+The use of the receiver for asynchronous channels, which allows for the production of a sequence of items 
+over time through the `async recv` method. 
+This method exemplifies a broader programming pattern known as `streams`, which can represent various data 
+flows, such as items in a queue, incremental data from a filesystem, or data received over a network.
+
+#### - Understanding Streams
+
+Streams are recognized as futures, enabling their combination with other future types to create complex 
+workflows. This allows developers to batch events, set timeouts on long-running operations, or throttle user
+interface events to optimize performance and resource usage. 
+
+A comparison between streams and iterators, highlighting two key differences:
+
+Synchronous vs. Asynchronous: 
+- Iterators operate synchronously, while the channel receiver operates asynchronously.
+- API Differences: Iterators utilize a synchronous next method, whereas the `trpl::Receiver` stream employs
+  an asynchronous `recv` method.
+
+Despite these differences, both APIs share a conceptual similarity, as `streams` can be viewed as an
+asynchronous form of iteration.
+
+#### - Creating a Stream from an Iterator
+
+We will see how any iterator can be transformed into a stream. 
+This transformation allows the use of the next method in an asynchronous context, which is demonstrated in 
+the provided code example:
+
+Code Example: Creating a Stream
+```rust 
+extern crate trpl; // required for mdbook test
+
+fn main() {
+    trpl::block_on(async {
+        let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let iter = values.iter().map(|n| n * 2);
+        let mut stream = trpl::stream_from_iter(iter);
+
+        while let Some(value) = stream.next().await {
+            println!("The value was: {value}");
+        }
+    });
+}
+```
+Explanation of the Code
+
+Initialization: An array of integers is defined, and an iterator is created to double each value using the 
+`map` function.
+
+**Stream Creation**: The iterator is then converted into a stream using the `trpl::stream_from_iter` function.
+
+**Asynchronous Loop**: `while let` loop is employed to asynchronously receive items from the stream as they 
+become available.
+
+The above code generates compilation error, indicating that the `next` method is not found for the 
+`tokio_stream::iter::Iter` struct. 
+The error message suggests that the required trait is not in scope and recommends importing the 
+`StreamExt` trait.
+
+```rust 
+use trpl::StreamExt;
+
+fn main() {
+    trpl::block_on(async {
+        let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        // --snip--
+        let iter = values.iter().map(|n| n * 2);
+        let mut stream = trpl::stream_from_iter(iter);
+
+        while let Some(value) = stream.next().await {
+            println!("The value was: {value}");
+        }
+    });
+}
+```
+
+Conclusion
+
+With the `StreamExt` trait correctly imported, the code compiles successfully and functions as intended. 
+This allows the use of utility methods provided by `StreamExt`, enhancing the functionality similar to that
+of iterators. 
+
+## In-Depth Summary of Rust's Future, Stream, Pin, and Unpin Traits
+
+Finer details of Future, Stream, and their associated traits in Rust, including the `Pin` type and the 
+`Unpin` trait. 
+These concepts are pivotal for understanding asynchronous programming in Rust.
+
+### Understanding the Future Trait
+
+Definition and Structure
+
+The Future trait in Rust represents a value that may not be immediately available but will be resolved at 
+some point in the future. 
+The trait is defined as follows:
+
+```rust 
+pub trait Future {
+    type Output;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output>;
+}
+```
+
+*Associated Type*: The Output associated type specifies what the future will resolve to, akin to the Item type
+in the Iterator trait.
+
+*Poll Method*: The poll method takes a `Pin` reference to `self` and a `mutable reference` to a `Context`,
+returning a `Poll<Self::Output>`.
+
+The Poll Type
+
+The Poll type is defined as:
+```rust
+pub enum Poll<T> {
+    Ready(T),
+    Pending,
+}
+```
+
+*Variants*: 
+    `Ready(T)`: Indicates that the future has completed and the value is available.
+    `Pending`: Indicates that the future is still working and the caller should check back later.
+
+Usage of Poll
+
+It is generally uncommon to call poll directly. If a future has returned Ready, calling poll again may 
+lead to a panic. This behavior is similar to how `Iterator::next` operates.
+
+Await and Poll
+
+When using the `await` keyword, Rust translates this into calls to `poll`. For instance, an `await` on a 
+future can be conceptually represented as:
+
+```rust
+match future.poll() {
+    Ready(value) => { /* handle value */ }
+    Pending => { /* handle pending state */ }
+}
+```
+
+To manage a Pending state, a loop is typically employed, allowing the runtime to yield control and check 
+back later.
+
+The Pin Type and the Unpin Trait
+
+#### Introduction to Pin
+
+The Pin type is a wrapper that ensures a value cannot be moved in memory, which is crucial for types that 
+contain references to themselves (self-referential types). The Pin type is defined as: `Pin<P>`
+
+Where `P` is a pointer-like type (e.g., `&`, `&mut`, `Box`, `Rc`). 
+The main purpose of `Pin` is to enforce safety guarantees around memory movement.
+
+#### The `Unpin` Trait
+
+The `Unpin` trait is a marker trait that indicates whether a type can be safely moved after being pinned. 
+Most types in Rust implement Unpin by default, but some types, especially those that are self-referential, 
+do not.
+
+Pinning Futures
+
+When futures are stored in collections (like vectors), they must be pinned to ensure their internal 
+references remain valid. This is illustrated in the following code snippet:
+
+`let futures: Vec<Pin<&mut dyn Future<Output = ()>>> = vec![/* pinned futures */];`
+
+Error Handling with Pin and Unpin
+
+If a future does not implement Unpin, attempting to use it in a context that requires it (like join_all) 
+will result in compilation errors. 
+
+The solution is to `pin` the futures using the `pin!` macro, allowing them to be safely moved into collections.
+
+#### The Stream Trait
+
+Definition and Structure
+
+The Stream trait is conceptually similar to the Future trait but is designed for sequences of values that 
+become available over time. 
+The Stream trait is defined as follows:
+
+```rust
+trait Stream {
+    type Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>>;
+}
+```
+
+*Associated Type*: Item represents the type of items produced by the stream.
+*poll_next Method*: This method polls the stream for the next item, returning a `Poll<Option<Self::Item>>`.
+
+`StreamExt` Trait
+
+The `StreamExt` trait provides additional convenience methods for working with streams, including an 
+asynchronous next method that simplifies the process of retrieving items from a stream.
+```rust 
+trait StreamExt: Stream {
+    async fn next(&mut self) -> Option<Self::Item>
+    where
+        Self: Unpin;
+}
+```
+
+Integration of Streams and Futures
+
+The Stream trait combines aspects of both Iterator and Future, allowing for asynchronous iteration over 
+sequences of items. 
+The `StreamExt` trait enhances usability by providing default implementations for common operations.
+
+
+## Futures, Tasks, and Threads
+
+### Introduction to Concurrency Models
+
+Concurrency, can be implemented through two primary models: `threads` and `async` programming with futures 
+and streams. 
+
+It emphasizes that the choice between these models is not always binary; rather, it often involves 
+utilizing both threads and async programming together, depending on the specific requirements of the task at
+hand.
+
+**Understanding Threads**
+
+Historical Context and Limitations
+
+Threads have been a staple in OS for long, providing a concurrency model that many programming languages 
+support. However, the use of threads comes with certain limitations:
+1. Memory Overhead:
+    Each thread consumes a significant amount of memory, which can be a constraint in systems with limited 
+    resources.
+
+2. OS Dependency: 
+    Threads are only available in environments where the operating system and hardware support them.
+    This is a critical consideration for embedded systems, which may not have an operating system at all.
+
+Characteristics of Threads
+
+Threads serve as a boundary for synchronous operations, allowing for concurrency between different threads.
+However, they operate in a "fire and forget" manner, meaning they run to completion without the ability to 
+be interrupted or managed through a finer granularity like futures.
+
+**The Async Model**
+
+Complementary Tradeoffs
+
+The async model offers a different set of tradeoffs:
+1. Task Management: 
+    Instead of relying on OS system-level management, tasks in the async model are managed by the runtime, 
+    which allows for more efficient use of resources.
+
+2. Concurrency: 
+    Tasks can manage multiple futures, enabling concurrency both between and within tasks. 
+    This flexibility allows for more complex operations without the overhead associated with threads.
+
+**Futures as Granular Units of Concurrency**
+
+Futures represent the most basic unit of concurrency in Rust. 
+Each future can encapsulate a tree of other futures, allowing for intricate workflows. 
+The runtime’s executor is responsible for managing tasks, while tasks manage futures, creating a layered 
+structure of concurrency management.
+
+#### Comparing Threads and Async Tasks
+
+Strengths and Weaknesses
+
+While `async` tasks offer advanced capabilities, they are not always superior to threads. 
+The simplicity of the threading model can be advantageous in certain scenarios. 
+
+**Threads**: 
+    Easier to conceptualize for CPU-bound tasks where operations can be parallelized.
+
+**Async Tasks**: 
+    Better suited for I/O-bound tasks where operations may not require continuous CPU usage and can benefit 
+    from non-blocking behavior.
+
+#### Integration of Threads and Async
+
+Threads and tasks can effectively work together: Many runtimes utilize a technique called "work stealing," 
+which allows tasks to be moved between threads dynamically based on current utilization, enhancing overall 
+system performance.
+
+Guidelines for Choosing Between Threads and Async:
+
+The chapter provides practical rules of thumb for deciding when to use threads versus async:
+
+- CPU-bound Work: 
+    If the task is highly parallelizable, threads are preferable.
+
+- I/O-bound Work: 
+    For tasks that require handling multiple inputs or outputs concurrently, `async` is the better choice.
+
+- Combined Needs: 
+    In scenarios requiring both parallelism and concurrency, developers can freely mix threads and async 
+    programming to leverage the strengths of both approaches.
+
+Example Implementation
+
+Example below demonstrating how to send messages using a thread while awaiting them in an `async` block. 
+
+```rust 
+use std::{thread, time::Duration};
+
+fn main() {
+    let (tx, mut rx) = trpl::channel();
+
+    thread::spawn(move || {
+        for i in 1..11 {
+            tx.send(i).unwrap();
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+
+    trpl::block_on(async {
+        while let Some(message) = rx.recv().await {
+            println!("{message}");
+        }
+    });
+}
+```
+
+- Creation of an async channel
+- Spawning a thread that sends numbers 1 through 10, pausing for one second between sends.
+- Using `trpl::block_on` to run an `async` block that awaits and prints the received messages.
+
+This example illustrate a practical application of combining threads and async programming in Rust.
+
+Real-World Applications
+
+- video encoding tasks, which are compute-bound, can run on dedicated threads, while UI updates can be 
+  handled asynchronously through channels.
+
+Conclusion and Future Directions
+
+The chapter emphasizes that concurrency will continue to be a theme in the book, with more complex 
+applications and comparisons between threading and async tasks explored in later chapters. 
+
+It reassures readers that Rust provides robust tools for writing safe and efficient concurrent code, whether 
+for high-performance web servers or embedded systems.
 
