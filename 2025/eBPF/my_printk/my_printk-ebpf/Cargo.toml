@@ -1,0 +1,17 @@
+[package]
+name = "my_printk-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+my_printk-common = { path = "../my_printk-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "my_printk"
+path = "src/main.rs"
