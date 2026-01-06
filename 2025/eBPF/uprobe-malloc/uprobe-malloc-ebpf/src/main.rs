@@ -17,6 +17,10 @@ fn try_uprobe_malloc(ctx: ProbeContext) -> Result<u32, u32> {
     // In x86_64, the 1st argument (size) is in %rdi
     // Aya's  .arg(0) helper handles this register mapping
     let size: usize = ctx.arg(0).ok_or(0u32)?;
+    // return if the malloc less then 10240 bytes
+    if size <= 102400 {
+        return Ok(0);
+    }
 
     // We can also get the PID of the process calling malloc
     let pid = ctx.pid();
