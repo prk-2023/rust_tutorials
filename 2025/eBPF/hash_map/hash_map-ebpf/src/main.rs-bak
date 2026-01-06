@@ -1,0 +1,86 @@
+#![no_std]
+#![no_main]
+
+use aya_ebpf::{
+    macros::{map, tracepoint},
+    programs::TracePointContext,
+};
+use aya_log_ebpf::info;
+
+use aya_ebpf::helpers::bpf_probe_read_user_str_bytes;
+use aya_ebpf::maps::{HashMap, PerCpuArray};
+use core::str::from_utf8_unchecked;
+
+const MAX_PATH_LEN: usize = 512;
+const FILENAME_OFFSET: usize = 16;
+// const ZEROED_ARRAY: [u8; 512] = [0u8; 512];
+const ZEROED_ARRAY: [u8; MAX_PATH_LEN] = [0u8; MAX_PATH_LEN];
+
+#[map]
+static MY_TEST_MAP: HashMap<[u8; MAX_PATH_LEN], u8> = HashMap::with_max_entries(10, 0);
+
+#[map]
+static BUF: PerCpuArray<[u8; MAX_PATH_LEN]> = PerCpuArray::with_max_entries(1, 0);
+
+#[tracepoint]
+pub fn hash_map(ctx: TracePointContext) -> u32 {
+    match try_hash_map(ctx) {
+        Ok(ret) => ret,
+        Err(ret) => ret as u32,
+    }
+}
+
+fn try_hash_map(ctx: TracePointContext) -> Result<u32, i64> {
+    // // You must ensure the map is actually available to the compiler
+    // let key = 1;
+    // // let value = 100;
+    // if let Some(val_ptr) = unsafe { MY_TEST_MAP.get_ptr_mut(&key) } {
+    //     //if it exists increment the value at that mem location
+    //     unsafe { *val_ptr += 1 };
+    // } else {
+    //     // it does not exist ( first time ) initialize it with 1
+    //     let initial_value = 1;
+    //     MY_TEST_MAP
+    //         .insert(&key, &initial_value, 0)
+    //         .map_err(|_| 1u32)?;
+    // }
+
+    // 1. Get the scratch buffer from per-cpu arry
+    // Index 0 is always present in a array map;
+    // 1. Get our scratch buffer from the Per-CPU array.
+    // Index 0 is always present in an Array map.
+    let key: [u8; 512] = [0; 512];
+    let buf_ptr = MY_TEST_MAP.get_ptr_mut(&key).ok_or(0)?;
+
+    // Safety: buf_ptr is a valid pointer to a PerCpuArray entry
+    let buf = unsafe { &mut *buf_ptr };
+
+    // 2. Clear the buffer (optional, but good for safety/predictability)
+    //*buf = [0u8; MAX_PATH_LEN];
+    *buf = 0u8;
+
+    // 3. Read the filename pointer from the tracepoint context.
+    // sys_enter_execve: filename is usually at offset 16 (on x86_64)
+    let filename_ptr: *const u8 = unsafe { ctx.read_at(16)? };
+
+    // 4. Read the string from user space into our map-backed buffer.
+    let filename_bytes = unsafe { bpf_probe_read_user_str_bytes(filename_ptr, buf)? };
+
+    // 5. Convert to string and log.
+    // We use from_utf8_unchecked because bpf_probe_read_user_str_bytes
+    // returns a slice of the buffer we just filled.
+    let filename = unsafe { from_utf8_unchecked(filename_bytes) };
+
+    info!(&ctx, "Tracepoint sys_enter_execve: {}", filename);
+    Ok(0)
+}
+
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    loop {}
+}
+
+#[unsafe(link_section = "license")]
+#[unsafe(no_mangle)]
+static LICENSE: [u8; 13] = *b"Dual MIT/GPL\0";

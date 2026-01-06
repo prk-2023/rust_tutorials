@@ -1,0 +1,17 @@
+[package]
+name = "hash_map-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+hash_map-common = { path = "../hash_map-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "hash_map"
+path = "src/main.rs"
