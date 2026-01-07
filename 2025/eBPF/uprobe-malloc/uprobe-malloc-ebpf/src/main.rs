@@ -17,7 +17,7 @@ fn try_uprobe_malloc(ctx: ProbeContext) -> Result<u32, u32> {
     // In x86_64, the 1st argument (size) is in %rdi
     // Aya's  .arg(0) helper handles this register mapping
     let size: usize = ctx.arg(0).ok_or(0u32)?;
-    // return if the malloc less then 10240 bytes
+    // reduce the console log to make the program responsive
     if size <= 102400 {
         return Ok(0);
     }
@@ -25,7 +25,24 @@ fn try_uprobe_malloc(ctx: ProbeContext) -> Result<u32, u32> {
     // We can also get the PID of the process calling malloc
     let pid = ctx.pid();
 
-    info!(&ctx, "PID {}: alloc called for {} bytes ", pid, size);
+    // 1. Capture the Result into a variable so the data lives long enough
+    let comm_raw = ctx.command();
+
+    //NOTE: the ctx.command() is typically 16 byte null-terminated string
+    //While from_utf8_unchecked() is fast we might see occasionally some garbage trailing
+    //characters in log if null termination is handles incorrectly. How ever aya_log should
+    //generally handle byte slices and strings correctly for the trace buffer.
+
+    // 2. Use a match to handle the Result and conversion in one scope
+    let comm = match &comm_raw {
+        Ok(val) => unsafe { core::str::from_utf8_unchecked(val) },
+        Err(_) => "unknown",
+    };
+    //info!(&ctx, "PID {}: alloc called for {} bytes ", pid, size);
+    info!(
+        &ctx,
+        "{} app with PID {}: alloc called for {} bytes ", comm, pid, size
+    );
     Ok(0)
 }
 
