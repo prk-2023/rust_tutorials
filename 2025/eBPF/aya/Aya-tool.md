@@ -2426,3 +2426,32 @@ sudo bpftool prog dump xlated name my_prog visual | dot -Tpng > logic.png
 For a person coming from **BCC** and **bpftrace**, is used to the tool doing the "heavy lifting" for you. 
 In **Aya**, you are the architect. `bpftool` is your ruler and level—it ensures that what you built in Rust 
 actually stands up inside the kernel.
+
+
+### Verification Checklist 
+
+As the text is generated using LLM's it need to be verified and worked along to build skills and update this
+document for corrections: 
+Below is a checklist for doing that:
+
+
+| Layer | What to Verify | Tools / Method |
+| --- | --- | --- |
+| **Bindings** | Did `aya-tool` map the `struct` correctly? | Open your generated `bindings.rs` and compare a field's type/offset with `bpftool btf dump file /sys/kernel/btf/vmlinux format c`. |
+| **Logic** | Did the Rust compiler optimize out my safety check? | Run `sudo bpftool prog dump xlated id <ID>` and look for the specific jump instructions (`jne`, `je`). |
+| **Memory** | Is my `RingBuffer` or `HashMap` actually filling up? | Use `sudo bpftool map dump id <ID>`. If you see only zeros, your kernel-side `submit()` or `insert()` is failing. |
+| **Logs** | Why isn't my `info!()` showing up? | Ensure you have `RUST_LOG=info` set in userspace and check the kernel pipe: `sudo cat /sys/kernel/debug/tracing/trace_pipe`. |
+
+---
+
+Tips for testing: 
+
+To start verifying the text against your actual code, keep two terminal windows open:
+
+1. **Window 1:** `cargo xtask run` (to keep your app alive).
+2. **Window 2:** A "Watch" command to see the kernel's internal state in real-time:
+```bash
+# Watch your program's run-time and packet count update live
+watch -n 1 "sudo bpftool prog show name YOUR_PROG_NAME"
+
+```
