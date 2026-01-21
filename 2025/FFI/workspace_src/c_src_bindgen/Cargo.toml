@@ -1,0 +1,11 @@
+[package]
+name = "c_src_bindgen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.72.1"
+# `bindgen` generates the code and `cc` will compile the C code into static library so Rust can link to it.
+cc = "1.2.53"  
