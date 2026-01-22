@@ -35,6 +35,153 @@
           Lower performance
 ```
 
+To understand this at the lowest level we need to look at where the **CPU meets the wire**.
+`XDP` power comes from the fact that it operates before the kernel allocates `sk_buff` (a core metadata
+structure that is used by the Linux networking stack.)
+
+The above 3 mode :
+1. **Native Mode **( Fastest ): This is most common high-performance deployment. The XDP Hook is located at
+   the very beginning of the **network driver's Rx function. 
+
+   - When the NIC receives a packet, it places it into a "Ring Buffer". The driver then wraps that raw data
+     into a `xdp_buff`.
+
+   - WorkFlow:
+        1. pkt arrives in a DMA buffer. 
+        2. The driver then executes the eBPF program if its attached to this hook.
+        3. This eBPF program returns a action code: 
+            `XDP_DROP`, `XDP_PASS`, `XDP_TX` (bounce back), `XDP_REDIRECT` or `XDP_ABORTED`
+
+   If we drop the packet at this point the kernel never spends time "parsing" it.
+
+2. **OFFLOAD Mode**(Fastest possible): In this mode XDP program is JIT compiled and pushed directly onto the
+   **Network Interface Card (NIC)**.
+   - The program runs on the NIC's onboard processor ( like those found in Netronome/Mellanox SmartNIC's).
+   - In this mode zero CPU cycles are used from the host. Malicious traffic (DDoS) is dropped before it even
+     hits the PCIe bus. 
+
+3. **SKB Mode** (Compatibility): This is fallback mode, its used when NIC driver doesn't have native XDP
+   support.
+   
+   - The kernel has already done the hard work of converting the raw packet into `sk_buff` (socket buffer).
+   - The XDP program runs inside the `netif_receive_skb()` function. 
+   - Since the kernel has already allocated memory and parsed metadata, you lose the "bypass" benefits.
+     It's mostly used for testing or when hardware compatibility is an issue.
+
+#### Implementation ( C and Rust ):
+
+Example : Simple IP dropper.
+
+Step 1: Parse the Ethernet header to ensure it's an IPv4 packet.
+
+Step 2: Parse the IP header to find the SRC address. 
+
+Step 3: If the SRC address matches a blocked IP return `XDP_DROP`
+
+Step 4: If SRC address does not match then return `XDP_PASS`
+
+This uses standard `linux/bpf.h` headers. It is manual and requires careful pointer arithmetic to satisfy
+the kernel verifier:
+```c 
+#include <linux/bpf.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <bpf/bpf_helpers.h>
+
+SEC("xdp")
+int xdp_drop_ip(struct xdp_md *ctx) {
+    void *data_end = (void *)(long)ctx->data_end;
+    void *data = (void *)(long)ctx->data;
+
+    struct ethhdr *eth = data;
+    // Check packet bounds for the verifier
+    if ((void *)(eth + 1) > data_end)
+        return XDP_PASS;
+
+    if (eth->h_proto != __constant_htons(ETH_P_IP))
+        return XDP_PASS;
+
+    struct iphdr *iph = (void *)(eth + 1);
+    if ((void *)(iph + 1) > data_end)
+        return XDP_PASS;
+
+    // Block IP: 1.2.3.4 (0x04030201 in network byte order)
+    if (iph->saddr == 0x04030201) {
+        return XDP_DROP;
+    }
+
+    return XDP_PASS;
+}
+
+char _license[] SEC("license") = "GPL";
+```
+
+For Rust part we can use aya framework of crates:version 0.13.1 which uses more robust `ptr_at` pattern that
+helps satisfy the eBPF verifier's strict boundary requirements and it also uses a `network-types` which is a
+standard crate along side aya framework of crates:
+```rust 
+use aya_bpf::{
+    bindings::xdp_action,
+    macros::xdp,
+    programs::XdpContext,
+};
+
+use core::mem;
+use network_types::{
+    eth::{EthHdr, EtherType},
+    ip::Ipv4Hdr,
+}
+
+#[xdp] 
+pub fn xdp_drop_ip(ctx: XdpContext) -> u32 {
+    match try_xdp_drop_ip(ctx) {
+        Ok(ret) => ret,
+        Err(_) => xdp_action::XDP_ABORTED,
+    }
+}
+
+#[inline(always)]
+fn try_xdp_drop_ip(ctx: XdpContext) -> Result<u32, ()> {
+    // 1. Point to the start of the Ethernet Header
+    let eth_hdr: *const EthHdr = unsafe { ctx.ptr_at(0) }.ok_or(())?;
+
+    // 2. Check if it's an IPv4 packet
+    // Note: We use u16::from_be to handle Network Byte Order
+    match unsafe { (*eth_hdr).ether_type } {
+        EtherType::Ipv4 => {}
+        _ => return Ok(xdp_action::XDP_PASS),
+    }
+
+    // 3. Point to the start of the IP Header (offset by EthHdr length)
+    let ipv4_hdr: *const Ipv4Hdr = unsafe { ctx.ptr_at(EthHdr::LEN) }.ok_or(())?;
+    
+    // 4. Extract the Source IP (converting from Big Endian/Network Order)
+    let source_addr = u32::from_be(unsafe { (*ipv4_hdr).src_addr });
+
+    // Block IP: 1.2.3.4
+    if source_addr == 0x01020304 {
+        return Ok(xdp_action::XDP_DROP);
+    }
+
+    Ok(xdp_action::XDP_PASS)
+}
+
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    unsafe { core::hint::unreachable_unchecked() }
+}
+
+```
+- network-types Crate: for  `EthHdr` and `Ipv4Hdr` definitions. It ensures the memory layout matches 
+    exactly what the Linux kernel expects.
+
+- The Verifier: The `ctx.ptr_at(offset)` method is the "secret" It checks `ctx.data` and `ctx.data_end`
+  under the hood. If the packet is too short to contain the header you're asking for, it returns `None`, 
+  which we handle with `.ok_or(())?`.
+
+- The Inline: Using `#[inline(always)]` for your helper function is a best practice in eBPF to ensure the 
+  compiler doesn't create a real function call that might confuse older kernels or the verifier.
+
 ### 2.2 Driver Integration - The Real Magic
 
 ```c
@@ -108,9 +255,25 @@ Before any XDP program runs:
 
 ## Part 3: XDP vs Kprobes - Architectural Showdown
 
+**Kprobe**: Is Event-Triggered Hijacking 
+**XDP**: Is Inline strategic Hooks (XDP)
+
+When we look at this from low level the XDP is orders of magnitude faster for networking. And Kprobes are
+"swiss army knife" for every thing else.
+
 ### 3.1 Text Flow Diagrams
 
 #### KPROBES FLOW:
+`Kprobes` are designed to let you peek into almost any function in the kernel without the kernel knowing in 
+advance that you'd want to.
+- The cost of the trap : `int3` instruction (on x86) triggers a HW exception. This forces the CPU to save
+  its current state (registers, stack pointer), switch context to the trap handler, and then restore
+  everything afterwards. This take hundreds of nano seconds. 
+
+- Since the trap is generic, the kernel has to search a hash table to find which eBPF program is registered
+  to that specific memory address.
+- This is best for debugging, tracing system calls, and monitoring kernel internal state where a few
+  microseconds of latency does,nt break the system
 ```
 [KERNEL TEXT SEGMENT]
     ↓
@@ -140,6 +303,19 @@ Before any XDP program runs:
 ```
 
 #### XDP FLOW:
+`XDP` is a *Static Hook*: Kernel developers "built the door" into the driver specifically for us to walk
+through. 
+- Zero Hijacking: Unlike `Kprobes`, `XDP` doesn't change the driver's code instructions. 
+  It uses a Function Pointer. 
+  If no program is loaded, the pointer is `null`, and the driver skips the check with a single branch 
+  instruction (which modern CPUs predict with near 100% accuracy).
+
+- Direct Execution: When a program is loaded, the driver calls it like a standard C function. 
+  There is no context switch, no hardware trap, and no register saving. 
+  This takes low single-digit nanoseconds.
+
+- Best For: High-throughput packet processing where you are dealing with millions of packets/sec (Mpps).
+
 ```
 [NETWORK DRIVER CODE - UNCHANGED]
     ↓
@@ -157,6 +333,13 @@ Before any XDP program runs:
                     ↓
         [DRIVER CONTINUES]
 ```
+`XDP` is specialized. It only sees the packet data. It doesn't know which process is going to receive the 
+packet, it doesn't know about "files," and it doesn't know about "users."
+
+`Kprobes` allow you to hook `sys_open()`. 
+
+XDP allows you to drop a packet before the kernel even knows it's an "open" request.
+
 
 ### 3.2 Side-by-Side Comparison Table
 
