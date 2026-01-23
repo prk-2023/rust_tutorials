@@ -1,0 +1,18 @@
+[package]
+name = "security_monitor-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+security_monitor-common = { path = "../security_monitor-common" }
+network-types = "0.1.0"
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "security_monitor"
+path = "src/main.rs"
