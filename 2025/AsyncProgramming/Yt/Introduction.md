@@ -337,9 +337,19 @@ stack frame, this limits the ability to pre-empt them.
 ### 2.2 Threads:
 
 Two types:
-- OS threads : OS creates and manages them. ( kernel threads )
+- OS threads : OS creates and manages them. ( kernel threads ) ( these are created using std::threads )
 - User threads: created by user programs, created and managed by user program and OS does not know about
-  them. 
+  them. (these are created using Tokio... or other async executors)
+
+1. OS thread:  ( In rust we use `std::thread` )
+  - OS is the boss 
+  - OS decides by looking all the threads from a program and decides thread_A to run on core #1 for 10 ms, and then stop and run thread_b...
+  - Ever time the OS decided switch as above, it has to jump to kernel mode and save everything the CPU was doing and load the new thread. **Context Switching**.
+
+2. User-space threads ( green threads ): ( In Rust we can create them using async executors ex: Tokio )
+  - Your program ( runtime like *tokyo* ..) 
+  - The OS only sees, say, 4 OS threads. But inside your code, you have 10,000 "Tasks." Your Runtime (tokio) manually swaps these tasks in and out of those 4 OS threads. The OS has no idea the tasks even exist.
+  - As runtime is in user-space, it switches tasks in "user mode" with out the help of OS. The operation just moving a pointer around memory ( and inexpensive )
 
 Creating new threads:
     Creating OS threads : Involves initialization and bookkeeping. Switching between running threads in same
@@ -361,8 +371,10 @@ complexity of the program.
 ### 2.3 Decouple async from threads:
 
 Decoupling threads from asynchronous operations is the core "magic" of modern high-performance software. 
+The "magic" is what allows a modern web server to handle 100,000 requests simultaneously using only 8 CPU cores.
 
 In short: **Threads are workers, while async operations are tasks.**
+In Async operations the Worker is the thread and it can creat tasks and moves on.
 
 In a traditional synchronous model, a worker is tied to a task until it's finished. 
 In an asynchronous model, the worker just starts the task and moves on.
@@ -1206,6 +1218,240 @@ Summary Checklist
 
 You've just covered the entire "Deep End" of Rust Asynchronous programming!
 
+### 2.10 Async program lifecycle:
+
+Complete lifecycle of a Rust asynchronous program, how the different components interact from the async {} to program finish.
+
+#### 1. The Definition Phase (The "Blueprint")
+
+Before the program even runs, you define your logic.
+
+* **The Code:** You write an `async fn` or an `async {}` block.
+* The Rust compiler turns this block into a **State Machine**. It calculates all the points where the code might pause (`.await`) 
+  and creates a `struct` (the **Future**) to hold the variables needed at each stage.
+* Result: You have a "dormant" Future. It does nothing until it is polled.
+
+#### 2. The Spawning Phase (The "Handoff")
+
+To start the work, you must hand the Future to a runtime.
+
+* **Action:** You call `tokio::spawn(your_future)`.
+* **The Queue:** The **Executor** (the thread pool) receives this Future and places it into its "Ready Queue."
+* **Result:** The Future is now a **Task**, scheduled and waiting for a CPU thread to become available.
+
+#### 3. The Polling Phase (The "Attempt")
+
+This is where execution actually happens.
+
+* **Action:** The **Executor** picks up the Task and calls `poll()`.
+* **Execution:** The code runs until it hits an `.await` (e.g., waiting for a network packet).
+* **The Yield:** If the data isn't ready, the Future returns `Poll::Pending`.
+* **Registration:** The Task registers its **Waker** (a handle to wake it up) with the **Reactor**.
+* **Result:** The Executor drops the task from its active list and moves on to help another Task. The thread is not blocked!
+
+#### 4. The Waiting Phase (The "Suspension")
+
+The task is now essentially "parked."
+
+* **The Reactor's Job:** 
+  The **Reactor** (the part of the runtime talking to the OS/Hardware) keeps an eye on the specific resource (e.g., a TCP socket).
+* **Hardware Event:** The Operating System notifies the Reactor that data has arrived.
+* **Result:** The task stays in memory but consumes **zero** CPU cycles during this phase.
+
+#### 5. The Waking Phase (The "Notification")
+
+The bridge between the hardware and the software.
+
+* **Action:** The **Reactor** triggers the **Waker** associated with the suspended Task.
+* **Rescheduling:** The Waker tells the **Executor**: "Task #123 has data now; put it back in the Ready Queue."
+* **Result:** The Task is moved from the "Waiting" list back to the "Ready" list.
+
+#### 6. The Re-Polling Phase (The "Resume")
+
+* **Action:** The **Executor** eventually picks up the Task again and calls `poll()` a second time.
+* **Progress:** Because the data is now available, the State Machine moves past the previous `.await` point and continues to the next part of your code.
+* **Result:** The code picks up exactly where it left off, with all its local variables intact.
+
+#### 7. The Completion Phase (The "Ready")
+
+* **Final Poll:** Eventually, the code reaches the end of the block.
+* **Result:** The `poll()` method returns `Poll::Ready(value)`.
+* **Cleanup:** The Executor removes the Task entirely, and any resources (like memory) are deallocated.
+
+#### Summary of the Cycle
+
+1. **Poll:** Executor tries to run the task.
+2. **Pending:** Task realizes it must wait and gives control back.
+3. **Wait:** Reactor watches the hardware.
+4. **Wake:** Reactor notifies the Executor.
+5. **Repeat:** Process repeats until the task is done.
+
+####  Example:
+Normally, you'd just use `tokio::time::sleep`, but here we will build one from scratch to show how 
+the **Executor**, **Reactor**, and **Waker** shake hands.
+
+```rust 
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+// 1. THE STATE: This represents our "Reactor" state
+struct TimerState {
+    completed: bool,
+    waker: Option<std::task::Waker>,
+}
+
+pub struct MyTimerFuture {
+    state: Arc<Mutex<TimerState>>,
+}
+
+impl MyTimerFuture {
+    pub fn new(duration: Duration) -> Self {
+        let state = Arc::new(Mutex::new(TimerState {
+            completed: false,
+            waker: None,
+        }));
+
+        let thread_state = state.clone();
+        
+        // 2. THE REACTOR MOCK: We spawn an OS thread to simulate 
+        // hardware (like a network card or clock) waiting for an event.
+        thread::spawn(move || {
+            thread::sleep(duration);
+            let mut guard = thread_state.lock().unwrap();
+            guard.completed = true;
+            
+            // 3. THE WAKE: If the Executor has registered a Waker, 
+            // we trigger it to tell the Executor "I'm ready!"
+            if let Some(waker) = guard.waker.take() {
+                waker.wake();
+            }
+        });
+
+        MyTimerFuture { state }
+    }
+}
+
+// 4. THE FUTURE TRAIT: This is what the Executor calls
+impl Future for MyTimerFuture {
+    type Output = String;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut guard = self.state.lock().unwrap();
+
+        if guard.completed {
+            // If the reactor finished, we return Ready
+            Poll::Ready("Timer Finished!".to_string())
+        } else {
+            // 5. THE REGISTRATION: If not finished, we store the 'Waker' 
+            // from the Context so the Reactor knows who to notify later.
+            guard.waker = Some(cx.waker().clone());
+            
+            // Return Pending to let the Executor know the thread is free
+            Poll::Pending
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let timer = MyTimerFuture::new(Duration::from_secs(2));
+    
+    println!("Waiting for the future...");
+    
+    // .await calls 'poll' initially, then goes to sleep until 'wake' is called
+    let result = timer.await; 
+    
+    println!("{}", result);
+}
+```
+- **Creation:** When we call `MyTimerFuture::new`, we start a separate thread (our "Mock Reactor"). It’s going to wait for 2 seconds.
+- **The First Poll:** When the `main` function hits `.await`, the **Tokio Executor** calls `poll()`.
+  * The `poll` function sees `completed` is still `false`.
+  * It saves the **Waker** into the shared state.
+  * It returns `Poll::Pending`.
+
+- **The Yield:** The main thread is now completely free to do other things.
+
+- **The Event:** 2 seconds pass. The "Reactor" thread sets `completed = true` and calls `waker.wake()`.
+
+- **The Re-Poll:** The **Executor** receives the wake signal, sees that `MyTimerFuture` is ready to try again, and calls `poll()` a second time.
+
+- **The Completion:** This time, `poll` sees `completed` is `true` and returns `Poll::Ready`.
+
+Key Takeaway:
+Notice that the `poll` function **never waits**. It checks the state and returns immediately. i
+This is why async is fast: **no thread ever sits idle inside a function.**
+
+`tokio::select!`: manage multiple futures at once:
+
+`tokio::select!` is the perfect way to see the **Executor** in action as a coordinator. 
+It allows you to wait on multiple futures simultaneously and react to whichever one finishes first. 
+This is a common pattern for setting timeouts or handling "racing" web requests.
+
+`tokio::select!` Example
+
+In this example, we will race our custom `MyTimerFuture` against a fast-canceling task.
+
+```rust
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() {
+    // We create two "Tasks" (Futures)
+    let slow_timer = MyTimerFuture::new(Duration::from_secs(5));
+    let fast_timer = MyTimerFuture::new(Duration::from_secs(2));
+
+    println!("Starting the race...");
+
+    // tokio::select! polls both futures. 
+    // As soon as ONE returns Poll::Ready, the other is dropped (canceled).
+    tokio::select! {
+        val = slow_timer => {
+            println!("The slow timer won? Logic error! Result: {}", val);
+        }
+        val = fast_timer => {
+            // This block will run because 2s < 5s
+            println!("The fast timer won! Result: {}", val);
+        }
+    }
+
+    println!("The race is over. The executor has cleaned up the loser.");
+}
+
+```
+-. **Multiplexing:** The Executor doesn't just poll one future; it polls both. If both return `Poll::Pending`, it registers the **Wakers** for both.
+-. **The First Signal:** When the 2-second timer's Reactor calls `wake()`, the Executor is notified.
+-. **The Winner:** The Executor calls `poll()` on the 2-second timer. It sees `Poll::Ready`.
+-. **Cancellation:** This is the most important part—the `select!` macro immediately **drops** the other future (the 5-second one). In Rust, dropping a future is how we "cancel" an async task safely.
+
+Important: The "Blocking" Trap
+
+To truly understand the **Task vs Thread** distinction, look at what happens if you accidentally use a
+"Thread" tool inside this "Task" world:
+
+```rust
+tokio::select! {
+    _ = tokio::time::sleep(Duration::from_secs(2)) => println!("Async sleep won"),
+    _ = {
+        // WARNING: This is an OS-level sleep!
+        // It blocks the actual Worker Thread for 10 seconds.
+        // The Executor cannot poll the other future because the thread is "frozen".
+        std::thread::sleep(Duration::from_secs(10)); 
+        async { println!("Blocking sleep won") }
+    }
+}
+
+```
+
+> **The Rule of Thumb:** If you are inside an `async` block, never use `std::thread::sleep` or 
+> perform heavy file/CPU work without using `tokio::task::spawn_blocking`. 
+> If you block the thread, the **Executor** cannot perform its cycle of polling and waking other tasks.
+
+----------------
 ## Roadmap till writing a custom executor:
 
 Building a custom executor is the ultimate "rite of passage" for mastering Rust's `async`. It forces you to stop seeing `async/await` as magic and start seeing it as a coordination game between queues and pointers.
@@ -1281,20 +1527,3 @@ If you follow these in order, the "magic" will disappear:
 3. **The `futures` crate:** Look at the source code for `futures_executor::block_on`. It is the simplest "executor" possible.
 
 **Would you like me to provide a 15-line "Pseudo-Executor" code snippet right now to show you the basic `while` loop structure?**
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
