@@ -1,94 +1,210 @@
-# Linux AIO ( Async I/O )
+# Asynchronous Support and Programming:
 
-Post native AIO:
+This article is relevant to Linux as a Operating system in general, covering how the operating system
+supports Asynchronous IO programming model, along with languages that can utilize this asynchronous
+programming model. 
 
-* Linux core supported only blocking I/O (`read()`/`write()`).
+### History Of Async I/O:
+---
 
-* POSIX AIO (`aio_read`, `aio_write`) existed in userspace headers but usually *emulated* through threads
-  because there was no true kernel `async` handling. (POSIX AIO used threads under the hood to fake
-  asynchrony.)
+**1. ( Linux kernel < 2.6.x )** 
+- Pre Linux kernel version 2.6.x only supported blocking I/O via ( `read()`/`write()` ), the only possible
+  option for programmers to use async I/O was to use the POSIX AIO (`aio_read()` and `aio_write()`) which
+  existed in user-space and exposed to programs via header. The Asynchronous behaviour was *emulated*
+  through treads because there was no true kernel `async` handling. ( POSIX AIO used threads under the hood
+  that fake asynchrony. )
 
-* Posix AIO definitions but no kernel support.
+- POSIX AIO: ( `glibc` ) : Uses a **thread pool** in user-space to perform standard blocking `read()` and
+  `write()` calls.
 
-* This was the inability to overlap I/O with computation unless the application used user threads.
+- This was a limitation to applications that do not use threads. 
 
-Traditionally Linux I/O was *blocking by default* ( `read()`, `write()` ), then "event-ready" ( `select`/
-`poll`/`epoll` ) then *asynchronous via kernel/AIO* and finally modernized by *io_uring*.
+**2. ( Linux kernel 2.6.x )**
 
-Linux Asynchronous I/O ( AIO ) allows a process to initiate multiple I/O operations without waiting for
-completion. The program continues running and later "reaps" the results.
+- Native Linux AIO : ( via `libaio` ): 
+    - Kernel level implementation using `io_submit()` and `io_getevents()`.
+    These implementations are still in the new kernels and should be the contention for eBPF internal study. 
+    To understand AIO we can split this into two parts: user and kernel spaces:
 
-**historical divide**:
+- User-Space side: 
+    - AIO mechanism allows user-space process to initiate multiple I/O operations without waiting for any of
+      them to complete.
+      
+      Unlike standard I/O which blocks the program, AIO lets the program move on to the task immediately,
+      receiving a notification later when the data is ready.
 
-Crucial to distinguish between two AIO's available at that time.
-1. POSIX AIO (glibc): 
-    An emulation layer, it uses a **thread pool** in userspace to perform standard blocking `read()`
-    and `write()` calls. 
+    - AIO ( `libaio` ) operates on "submit and poll"  model. Instead of standard `read()` and `write()`
+      system calls, it uses a specialized set of system calls to interact with the kernel's I/O queue.
+      
+      1. Setup (`io_setup`): Procecss requests the kernel to create an *AIO Context*, this is essentially a
+         queue in kernel space that will track the state of your ongoing requests.
 
-2. Native Linux AIO: (`libaio`):  
-    A kernel-level implementation using `io_submit` and `io_getevents`. 
-    This should be of focus for kernel/eBPF internal study.
+      2. Submission ( `io_submit` ): The process prepares one or more *I/O Control Blocks* (`iocb`). These
+         blocks contain the file descriptors, the buffer address, and the offset. When `io_submit` is
+         called:
+         - Kernel adds these requests to the device's dispatch queue. 
+         - The system call returns immediately.
+         - The disk controller handles the actual data transfer in the background via DMA. 
+      
+      3. Completion and Harvesting ( `io_getevents` ): Once the hardware finishes, the kernel places a
+         "completion event" into a ring buffer.  
+
+         The user-space process calls `io_getevents` to check that buffer. 
+         If the work is done, it retrieves the results; if not, it can choose to wait or go do more work.
+
+    - How to use AIO ( Code ) : you will need `libaio` library. 
+
+      1. Initialize the Context: 
+      ```c 
+      struct io_context *ctx = 0;
+      int max_events = 128;
+      io_setup(max_events, &ctx);
+      ```
+
+      2. Prepare the Request: You define what you want to do (e.g Read) in an `iocb` struct:
+      ```c 
+      struct iocb cb;
+      struct iocb *cbs[1];
+      chat *buffer = malloc(4096);
+
+      io_prep_pread(&cb, fd, buffer, 4096, 0); // Read 4096 bytes at offset 0
+      ```
+
+      3. Submit and Reap:
+      ```c 
+      io_submit(ctx, 1, cbs); // Non-blocking call 
+
+      // ... do other high-performance calculations here ...
+
+      struct io_event events[1];
+      io_getevents(ctx, 1, 1, events, NULL); // Wait for at least 1 event
+      ```
+---
+Note: When to use AIO:
+
+- Note AIO can not be used for every thing and there are strict requirements.
+    * *O_DIRECT* is mandatory: File must be opened with *O_DIRECT* flag. Or else kernel will use page cache,
+      and the AIO call will actually block while waiting for the cache to update, defeating the purpose.
+    * *Filesystem Support*: Not all File systems support AIO, XFS and EXT4 its most efficient for large
+      block operations.
+    * The Modern Rival: As from kernel 5.1+, `io_uring` has largely replacecd `libaio`. Its faster, supports
+      buffered I/O and has much cleaner interface.
+---
 
 
-**Kernel Side**:  `fs/aio.c` ( The 2.6.0+ Implementation )
-The kernel manages "AIO" through a "context" (`kioctx`). 
-For eBPF practitioners, these structures are the primary targets for `kprobes` and `fentry`.
+- Kernel Side implementation: ( 2.6.0+ ) `fs/aio.c` 
 
-1. The AIO Context (struct kioctx)
+    - To understand we have to look at the *AIO Context* and *I/O Scheduler*.
 
-This structure anchors the asynchronous lifecycle to a process's memory map (`mm_struct`).
+    1. **The AIO Context** ( `lioctx` )
+    When you call `io_setup` kernel creates a `kioctx` structure for your process. This is private "mailbox"
+    in kernel memory. ( i.e `kioctx` struct holds messages/requests that are sent from user-space to kernel)
+    - **The Ring buffer*: Kernel maps a piece of memory that both kernel and application can see, this
+      buffer stores *Completion Events*.
+    - **Queue**: It sets up a tracing mechanism for "in-flight" requests so the kernel knows how many
+      operations are currently touching the HW.
 
-```c
-struct kioctx {
-    atomic_t           users;
-    struct mm_struct   *mm;            // Ties AIO to the process address space
-    unsigned long      user_id;        // The "handle" returned to userspace
-    wait_queue_head_t  wait;           // Used by io_getevents to sleep
-    struct list_head   active_reqs;    // Linked list of in-flight kiocb
-    struct aio_ring_info ring_info;    // The shared completion ring
-};
-```
-- `struct mm_struct   *mm;` this ties AIO context to a specific process memory space.
--  Completion ring lives in user-space memory.
-- kernel maps pages into user-space.
-- Note submissionon is still "syscall-based".
-- Not lockless.
+    2. **Submission: The fast path**: When you call `io_submit` the kernel does not start reading. It
+       performs a high-speed handoff:
+       - *Validation*: kernel checks `iocb` ( I/O control block ) is valid and file was opened with
+         *O_DIRECT* flag.
+       - *Mapping*: It pins the user-space memory pages. Because AIO is asynchronous, the kernel must ensure
+         your app does not move or delete the memory buffer while the disk is writing to it.
+       - *The Non-blocking Plug*: Instead of calling std read function that sleeps, it calls the
+         `file_operations->read_iter` or `aio_read` method of the specific filesystem ( like XFS or EXT4 ).
+       - *Immediate Return*: If the driver confirms the request is queued, the kernel immediately returns
+         control to your program. Your CPU is now free to do other things.
 
-2. The I/O Control Block (`struct kiocb`)
+    3. **DMA**: Kernel tells Disk Controller: "When you are ready take data from this sector and put it
+       directly into this memory address. Do not bother the CPU until you finished". CPU is effectively
+       removed from the data transfer process. Disk HW handles the heavy lifting in the background.
 
-Each individual request is tracked via a `kiocb`. 
+    4. **Completion The Interrupt**: Below is how the kernel knows its done.
+       - HW Interrupt: disk controller sends an interrupt signal to the CPU.
+       - Interrupt Handler: kernel's interrupt handler catches this and identifies which AIO request is
+         finished.
+       - Pushing the Event: The kernel writes a "success" (or error) message into the Ring Buffer we 
+         mentioned in step 1.
+       - Wake Up: If the user process was specifically waiting via `io_getevents`, the kernel wakes it up. 
+         Otherwise, the event just sits in the buffer until the app decides to check it.
 
-In eBPF, you often trace this to measure latency (start time at `io_submit` vs. `end` time at `aio_complete`).
+- Kernel manages "AIO" through a **Context** ( `kioctx`).
 
-```c 
-struct kiocb {
-    struct file         *ki_filp;
-    struct kioctx       *ki_ctx;
-    struct list_head    ki_list;       // Link to kioctx->active_reqs
-    __u64                ki_user_data; // Opaque cookie (returned in io_event)
-    loff_t               ki_pos;       // File offset
-};
-```
+    For eBPF programs, these structures are the primary targets for `kprobe` and `fentry`.
 
-3. The Completion Ring (`aio_ring_info`)
+    1. AIO Context ( `struct kioctx` ): This struct anchors the asynchronous life cycle to a process's memory
+      map ( `mm_struct`):
 
-```c 
-struct aio_ring_info {
-    unsigned long       mmap_base;
-    struct page         **ring_pages;      // Array of pages
-    unsigned            nr, tail;          // Ring state
-};
-```
-- `ring_pages`: completion queue is allocated kernel. mmap's into user-space.
+      ```c 
+      struct kioctx {
+        atomic_t            users;
+        struct mm_struct    *mm;        // Ties AIO to the process address space. 
+        unsigned longuct    user_id;    // The Handle thats returned to user-space 
+        wait_queue_head_t   wait;       // Used by `io_getevents` to sleep 
+        struct list_head    active_reqs;// Linked list of in-flight kiocb 
+        struct aio_ring_info ring_info; // The shared completion ring 
+      };
+      ```
+      - `struct mm_struct   *mm;` this ties AIO context to a specific process memory space.
+      -  Completion ring lives in user-space memory.
+      - kernel maps pages into user-space.
+      - Note submissionon is still "syscall-based".
+      - Not lockless.
+      - `struct mm_struct   *mm;` this ties AIO context to a specific process memory space.
+      -  Completion ring lives in user-space memory.
+      - kernel maps pages into user-space.
+      - Note submissionon is still "syscall-based".
+      - Not lockless.
 
-The kernel allocates pages for the completion queue and maps them directly into user-space.
+    2. The I/O Control Block ( `struct kiocb` ): Each individual request is tracked via a `kiocb`
+    In eBPF, you often trace this to measure latency (start time at `io_submit` vs. `end` time at `aio_complete`).
 
-Asymmetry: 
+    ```c 
+    struct kiocb {
+        struct file         *ki_filp;
+        struct kioctx       *ki_ctx;
+        struct list_head    ki_list;       // Link to kioctx->active_reqs
+        __u64                ki_user_data; // Opaque cookie (returned in io_event)
+        loff_t               ki_pos;       // File offset
+    };
+    ```
+
+    3. The Completion Ring (`aio_ring_info`)
+
+    ```c 
+    struct aio_ring_info {
+        unsigned long       mmap_base;
+        struct page         **ring_pages;      // Array of pages
+        unsigned            nr, tail;          // Ring state
+    };
+    ```
+- `ring_pages`: completion queue is allocated by kernel and  mmap's into user-space.
+
+  The kernel allocates pages for the completion queue and maps them directly into user-space.
+
+  Asymmetry: 
     Submission is a syscall (heavy); Completion is a memory-mapped read (light).
 
-IRQ Context: 
+  IRQ Context: 
     The kernel writes to this ring during the Interrupt Request (IRQ) handler via `aio_complete()`. 
 
+NOTE: `eBPF`:
+---
+To trace Native AIO on modern Linux (6.X.+):
+1. The Entry Hook: trace `io_submit_one`, this function takes `struct kioctx *ctx` and 
+   a `struct iocd __user   *user_iocb`.
+
+   - eBPF Task: Read the user-space `iocb` to see what the application wants to do.
+
+2. The completion Hook: Trace `aio_complete`. This function takes a `struct aio_kiocb *iocb`
+   - eBPF task: Pull the timing information. Since you have the pointer to the `aio_kiocb`. You can use it
+     as a "key" in a BPF map to calculate how long that specific request took from submission to completion.
+
+To study AIO in modern linux perforamnce, look into `io_uring`. Its essentially "AIO 2.0"
+- *Native AIO* ( `libaio` ) uses `struct aio_kiocb`.
+- *io_uring*: uses `struct io_kiocb`.
+
+`io_uring` is much faster as it avoids the system call overhead by using shared memory rings.
 ---
 
 Critical limitation encoded in 2.6.0:
@@ -1180,6 +1296,3 @@ This is the "Completion" model (Phase 3/4).
 | **Buffer Handling** | Borrowed (`&mut [u8]`) | **Owned** (`Vec<u8>`) |
 | **Efficiency** | 2 syscalls (wait + read) | **1 or 0 syscalls** (enter) |
 | **Best For** | General microservices | **High-perf Networking / NVMe** |
-
-
-
