@@ -1,0 +1,158 @@
+// use anyhow::context as _;
+// use aya::programs::{xdp, xdpflags};
+// use clap::parser;
+// #[rustfmt::skip]
+// use log::{debug, warn};
+// use tokio::signal;
+//
+// #[derive(debug, parser)]
+// struct opt {
+//     #[clap(short, long, default_value = "enp3s0")]
+//     iface: string,
+// }
+//
+// #[tokio::main]
+// async fn main() -> anyhow::result<()> {
+//     let opt = opt::parse();
+//
+//     env_logger::init();
+//
+//     // bump the memlock rlimit. this is needed for older kernels that don't use the
+//     // new memcg based accounting, see https://lwn.net/articles/837122/
+//     let rlim = libc::rlimit {
+//         rlim_cur: libc::rlim_infinity,
+//         rlim_max: libc::rlim_infinity,
+//     };
+//     let ret = unsafe { libc::setrlimit(libc::rlimit_memlock, &rlim) };
+//     if ret != 0 {
+//         debug!("remove limit on locked memory failed, ret is: {ret}");
+//     }
+//
+//     // this will include your ebpf object file as raw bytes at compile-time and load it at
+//     // runtime. this approach is recommended for most real-world use cases. if you would
+//     // like to specify the ebpf program at runtime rather than at compile-time, you can
+//     // reach for `bpf::load_file` instead.
+//     let mut ebpf = aya::ebpf::load(aya::include_bytes_aligned!(concat!(
+//         env!("out_dir"),
+//         "/my-pps-counter"
+//     )))?;
+//     match aya_log::ebpflogger::init(&mut ebpf) {
+//         err(e) => {
+//             // this can happen if you remove all log statements from your ebpf program.
+//             warn!("failed to initialize ebpf logger: {e}");
+//         }
+//         ok(logger) => {
+//             let mut logger =
+//                 tokio::io::unix::asyncfd::with_interest(logger, tokio::io::interest::readable)?;
+//             tokio::task::spawn(async move {
+//                 loop {
+//                     let mut guard = logger.readable_mut().await.unwrap();
+//                     guard.get_inner_mut().flush();
+//                     guard.clear_ready();
+//                 }
+//             });
+//         }
+//     }
+//     let opt { iface } = opt;
+//     let program: &mut xdp = ebpf.program_mut("my_pps_counter").unwrap().try_into()?;
+//     program.load()?;
+//     program.attach(&iface, xdpflags::default())
+//         .context("failed to attach the xdp program with default flags - try changing xdpflags::default() to xdpflags::skb_mode")?;
+//
+//     let ctrl_c = signal::ctrl_c();
+//     println!("waiting for ctrl-c...");
+//     ctrl_c.await?;
+//     println!("exiting...");
+//
+//     ok(())
+// }
+//
+use anyhow::Context as _;
+use aya::maps::PerCpuArray;
+use aya::programs::{Xdp, XdpFlags};
+use clap::Parser;
+#[rustfmt::skip]
+use log::{warn};
+use tokio::signal;
+//use std::time::{Duration, Instant};
+use tokio::time::{self, Duration}; // Explicitly use tokio's time module
+use aya_log::EbpfLogger;           // Use the new non-deprecated name
+
+#[derive(Debug, Parser)]
+struct Opt {
+    #[clap(short, long, default_value = "enp3s0")]
+    iface: String,
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let opt = Opt::parse();
+    env_logger::init();
+
+    // Bump the memlock rlimit for older kernels
+    // let rlim = libc::rlimit {
+    //     rlim_cur: libc::rlim_infinity,
+    //     rlim_max: libc::rlim_infinity,
+    // };
+    // let ret = unsafe { libc::setrlimit(libc::rlimit_memlock, &rlim) };
+    // if ret != 0 {
+    //     debug!("remove limit on locked memory failed, ret is: {ret}");
+    // }
+
+    // Load the eBPF object
+    let mut ebpf = aya::Ebpf::load(aya::include_bytes_aligned!(concat!(
+        env!("OUT_DIR"),
+        "/my-pps-counter"
+    )))?;
+
+    // Initialize logger
+    if let Err(e) = aya_log::EbpfLogger::init(&mut ebpf) {
+        warn!("failed to initialize ebpf logger: {e}");
+    }
+
+    let Opt { iface } = opt;
+    
+    // Use the function name from your eBPF code: pps_counter
+    let program: &mut Xdp = ebpf.program_mut("pps_counter").unwrap().try_into()?;
+    program.load()?;
+    program.attach(&iface, XdpFlags::default())
+        .context("failed to attach XDP program")?;
+
+    // Access the map using the new Aya 0.13 API
+    let counter_map: PerCpuArray<_, u64> = PerCpuArray::try_from(ebpf.map("COUNTER").unwrap())?;
+
+    println!("Monitoring PPS on {}... Press Ctrl+C to stop.", iface);
+
+    let mut last_count = 0u64;
+    let mut last_time = Instant::now();
+    //let mut interval = time::interval(Duration::from_secs(1));
+    let mut interval = time::interval(Duration::from_secs(1));
+    interval.set_missed_tick_behavior(time::MissedTickBehavior::Skip);
+
+    loop {
+        tokio::select! {
+            _ = interval.tick() => {
+                // Aggregate values from all CPUs
+                // Index 0 because we only have 1 entry in the array
+                let per_cpu_values = counter_map.get(&0, 0)?; 
+                let total_count: u64 = per_cpu_values.iter().sum();
+
+                let now = Instant::now();
+                let elapsed = now.duration_since(last_time).as_secs_f64();
+                let delta = total_count.saturating_sub(last_count);
+                let pps = delta as f64 / elapsed;
+
+                println!("PPS: {:<10.2} | Total Packets: {}", pps, total_count);
+
+                last_count = total_count;
+                last_time = now;
+            }
+            _ = signal::ctrl_c() => {
+                println!("\nExiting...");
+                break;
+            }
+        }
+    }
+
+    Ok(())
+}

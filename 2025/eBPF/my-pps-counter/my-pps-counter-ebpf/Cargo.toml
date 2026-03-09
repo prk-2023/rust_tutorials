@@ -1,0 +1,17 @@
+[package]
+name = "my-pps-counter-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+my-pps-counter-common = { path = "../my-pps-counter-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "my-pps-counter"
+path = "src/main.rs"
