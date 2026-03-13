@@ -178,6 +178,57 @@ A **software-based fallback** provided by the kernel.
 | **Native** | NIC Driver | High | Low | Medium (Driver-specific) |
 | **Generic** | Network Stack | Moderate | High | None (Works everywhere) |
 
+## Operations we can perform in XDP:
+
+Since XDP programs operate at NIC driver level, the operations are limited but extremely powerful.
+These are generally classified into three categories:
+
+### 1.  Verdict ( "Return" Codes )
+
+These determine the fate of the packet:
+
+* **`XDP_DROP`**: Silently discard the packet. Instant speed.
+* **`XDP_PASS`**: Send the packet to the regular kernel networking stack (`sk_buff` creation).
+* **`XDP_TX`**: Send the packet back out through the same NIC it arrived on (great for load balancing or
+  hair-pinning ).
+* **`XDP_REDIRECT`**: Send the packet to a different CPU, a different NIC, or an AF_XDP socket (the fastest
+  path to user space).
+* **`XDP_ABORTED`**: Indicate an error occurred (kernel logs this for debugging).
+
+### 2. Modification
+
+You have the power to mangle the packet before it even touches the kernel's protocol stack:
+
+* **`bpf_xdp_adjust_head`**: 
+
+    Grow or shrink the packet size at the beginning. 
+    Used for encapsulating (adding headers like VXLAN/GUE) or decapsulating (stripping headers).
+
+* **`bpf_xdp_adjust_tail`**: 
+
+    Grow or shrink the packet size at the end (useful for padding or truncating).
+
+* **Direct Memory Write**: 
+
+    Since you have the `data` pointer, you can modify headers directly 
+    (e.g., changing IP addresses or TCP ports) if you stay within the `data` and `data_end` bounds.
+
+### 3. Meta-data Passing: 
+    
+* **`data_meta` Writes**: 
+    You can store custom metadata here for other programs. 
+    If you write data here, a later XDP program (or an eBPF program at the TC layer) can read it, provided 
+    the driver supports it.
+
+
+#### Note:
+
+- Because you are working with raw memory pointers (`data` and `data_end`), the BPF verifier is strict.
+  If you try to read 4 bytes past `data_end`, the verifier will reject your program entirely. 
+  Always write defensive code—check your bounds, check your protocol types, and treat the buffer as 
+  read-only until you are absolutely certain you have the space to write.
+
+---
 
 ##  How to load XDP programs:
 
@@ -340,6 +391,14 @@ When an XDP program is triggered, the kernel (via the NIC driver) provides a **`
 Think of this struct as a **metadata wrapper** that points to a raw "chunk" of memory where the packet has 
 just been landed by the network hardware.
 
+This is called meta wrapper as it does not contain the packet payload. It contains the co-ordinates to find
+the payload. 
+
+In kernel packet arrives in a ring buffer managed by the NIC, before the kernel creates a heavy `sk_buf` (
+socket buffer ) structure, XDP  intercepts the packet `struct xdp_md` acts as an abstraction layer ( or
+wrapper ) that gives the eBPF program the "address" of the packet in the DMA memory region. 
+
+
 Here is the breakdown of how that context works:
 
 ### 1. The Core Purpose
@@ -364,11 +423,16 @@ location in memory:
 * **`data_meta`**: 
 
     Points to a small "headroom" area where you can store custom metadata to pass to other layers of the
-    kernel.
+    kernel. This is invaluable for passing information up the stack without modifying the actual packet 
+    payload.
 
 * **`ingress_ifindex`**: 
 
     The ID of the network interface where the packet arrived.
+
+* **`rx_queue_index`**:
+
+    The specific HW RX queue that receives this packet. 
 
 ### 3. Usage in C vs. Rust
 
