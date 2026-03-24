@@ -63,7 +63,10 @@ A normal construction becomes unreadable.
 ```
 
 ** The Solution **
+
 Builder Solution:
+
+example:
 
 ```rust 
     Builder::new()                          Builder::new()                    
@@ -71,7 +74,8 @@ Builder Solution:
       .option_b(y)              example=>       .debug(true)                  
       .enable_feature()                         .buffer_size(64)              
       .build();                                 .enable_feature_x()           
-```                                             .build();                     
+                                                .build();                     
+```
 
 - Rust tooling loves this above pattern, for the following :
     - No default arguments in the language.
