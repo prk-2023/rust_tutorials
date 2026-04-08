@@ -1,5 +1,121 @@
 # Aya:
+```mermaid
+graph TB
+    subgraph "User Space Applications"
+        APP[Rust User Application]
+        CLI[Command Line Tools]
+        METRICS[Prometheus/Grafana]
+    end
 
+    subgraph "Aya Framework (Rust)"
+        AYA_CORE[Aya Core Library]
+        AYA_LOADER[BPF Loader]
+        AYA_GEN[Code Generation]
+        AYA_BIND[BPF Bindings]
+        
+        subgraph "Aya Components"
+            PROG_MGR[Program Manager]
+            MAP_MGR[Map Manager]
+            LOGGER[Logger]
+            PERF[Perf Event Handler]
+        end
+    end
+
+    subgraph "Rust eBPF Programs"
+        XDP[XDP Program]
+        TC[TC Classifier]
+        TRACE[Tracepoint]
+        KPROBE[Kprobe/Kretprobe]
+        SOCK[Socket Filter]
+    end
+
+    subgraph "Kernel Space"
+        BPF_VM[eBPF Virtual Machine]
+        JIT[JIT Compiler]
+        VERIFIER[Verifier]
+        
+        subgraph "BPF Maps"
+            HASH[HashMap]
+            ARRAY[Array Map]
+            PERCPU[Per-CPU Map]
+            LRU[LRU Map]
+            RING[Ring Buffer]
+        end
+        
+        subgraph "Hooks"
+            XDP_HOOK[XDP Hook]
+            TC_HOOK[TC Hook]
+            TRACE_HOOK[Tracepoint Hook]
+            KPROBE_HOOK[Kprobe Hook]
+        end
+    end
+
+    subgraph "External Systems"
+        NETWORK[Network Packets]
+        KERNEL[Kernel Functions]
+        SYSTEM[System Calls]
+    end
+
+    %% Compilation & Loading Flow
+    APP -->|Builds| AYA_GEN
+    AYA_GEN -->|Generates| RUST_BPF[Rust BPF Code]
+    RUST_BPF -->|Compiles| LLVM[LLVM to BPF]
+    LLVM -->|BPF Bytecode| AYA_LOADER
+    AYA_LOADER -->|Loads & Verifies| VERIFIER
+    VERIFIER -->|JIT Compiles| JIT
+    JIT -->|Native Code| BPF_VM
+
+    %% Program Attachment
+    AYA_CORE -->|Attach| XDP_HOOK
+    AYA_CORE -->|Attach| TC_HOOK
+    AYA_CORE -->|Attach| TRACE_HOOK
+    AYA_CORE -->|Attach| KPROBE_HOOK
+
+    XDP -->|Runs on| XDP_HOOK
+    TC -->|Runs on| TC_HOOK
+    TRACE -->|Runs on| TRACE_HOOK
+    KPROBE -->|Runs on| KPROBE_HOOK
+    SOCK -->|Runs on| NETWORK
+
+    %% Data Flow
+    XDP_HOOK -->|Processes| NETWORK
+    TC_HOOK -->|Processes| NETWORK
+    TRACE_HOOK -->|Traces| KERNEL
+    KPROBE_HOOK -->|Probes| SYSTEM
+
+    %% Map Operations
+    BPF_VM -->|Accesses| HASH
+    BPF_VM -->|Accesses| ARRAY
+    BPF_VM -->|Accesses| PERCPU
+    BPF_VM -->|Accesses| LRU
+    BPF_VM -->|Writes Events| RING
+
+    %% User Space Communication
+    RING -->|Perf Events| PERF
+    PERF -->|Data Stream| AYA_CORE
+    AYA_CORE -->|Metrics| METRICS
+    AYA_CORE -->|Control| CLI
+    
+    %% Map Management
+    MAP_MGR -->|Manages| HASH
+    MAP_MGR -->|Manages| ARRAY
+    PROG_MGR -->|Controls| XDP
+    PROG_MGR -->|Controls| TC
+    
+    %% Logging
+    BPF_VM -->|Debug Logs| LOGGER
+    LOGGER -->|Log Output| APP
+
+    classDef rust fill:#f0a3a3,stroke:#333,stroke-width:2px
+    classDef kernel fill:#a3c4f0,stroke:#333,stroke-width:2px
+    classDef aya fill:#a3f0b0,stroke:#333,stroke-width:2px
+    classDef external fill:#f0e0a3,stroke:#333,stroke-width:2px
+    
+    class APP,CLI,METRICS rust
+    class BPF_VM,JIT,VERIFIER,HASH,ARRAY,PERCPU,LRU,RING,XDP_HOOK,TC_HOOK,TRACE_HOOK,KPROBE_HOOK kernel
+    class AYA_CORE,AYA_LOADER,AYA_GEN,AYA_BIND,PROG_MGR,MAP_MGR,LOGGER,PERF aya
+    class NETWORK,KERNEL,SYSTEM external
+```
 
 ## What is Aya:
 
