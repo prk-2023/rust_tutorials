@@ -1,5 +1,5 @@
 use anyhow::Context as _;
-use aya::programs::{Xdp, XdpFlags};
+use aya::programs::{Xdp, XdpMode};
 use clap::Parser;
 #[rustfmt::skip]
 //use log::{debug, warn};
@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     let Opt { iface } = opt;
     let program: &mut Xdp = ebpf.program_mut("my_pps_counter").unwrap().try_into()?;
     program.load()?;
-    program.attach(&iface, XdpFlags::default())
+    program.attach(&iface, XdpMode::default())
         .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
 
     let  counter: PerCpuArray<_, u64> = PerCpuArray::try_from(ebpf.map_mut("COUNTER").unwrap())?;
