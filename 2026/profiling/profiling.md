@@ -121,7 +121,8 @@ allowing you to easily browse call trees, sample timelines, and thread allocatio
 
 ## 4. Micro-Benchmarking Functions
 
-When isolating specific algorithms, parsing logic, or critical routines, rely on a statistics-driven benchmarking harness rather than manual timers.
+When isolating specific algorithms, parsing logic, or critical routines, rely on a statistics-driven
+benchmarking harness rather than manual timers.
 
 `Criterion.rs`
 
@@ -257,7 +258,8 @@ tokio-console
 
 ### A. Callgrind & KCachegrind
 
-When execution counts must be deterministic (e.g., counting the exact number of instruction executions independent of execution timing variations):
+When execution counts must be deterministic (e.g., counting the exact number of instruction executions
+independent of execution timing variations):
 
 ```bash 
 valgrind --tool=callgrind ./target/release/myapp
@@ -265,12 +267,15 @@ kcachegrind callgrind.out.<pid>
 ```
 
 ### B. Production eBPF Profiling
-In live cloud-native production environments, traditional profilers cause too much application lag. Modern deployment setups rely on eBPF (Extended Berkeley Packet Filters) to capture highly accurate sample data with practically zero overhead.
+In live cloud-native production environments, traditional profilers cause too much application lag. Modern
+deployment setups rely on eBPF (Extended Berkeley Packet Filters) to capture highly accurate sample data
+with practically zero overhead.
 
 Tools to consider: bpftrace, Parca, and Pyroscope.
 
 ### C. Profile-Guided Optimization (PGO)
-Once you have collected data paths, you can feed performance logs back into the Rust compiler. The compiler will re-optimize its binary layout based on real-world execution paths.
+Once you have collected data paths, you can feed performance logs back into the Rust compiler. The compiler
+will re-optimize its binary layout based on real-world execution paths.
 
 ```bash 
 # 1. Install standard PGO instruments
@@ -305,10 +310,17 @@ Ref:
 
 To clarify how `samply` resolves your code, understand that there are two distinct parts:
 
-* **Debug Symbols (Mandatory for Names):** When you compile with `debug = true`, the compiler embeds mapping data (function names, file paths, line numbers) into your binary. **`samply` requires this.** Without it, you will only see memory addresses (e.g., `0x7fff81a03f4`).
-* **Source Code Files (Optional for UI):** `samply` reads the file paths stored in those debug symbols and looks for those `.rs` files on your hard drive.
-* If the source code files *are* present, `samply` serves them locally so you can click a function name and view the lines of code with their execution counts.
-* If you run `samply` on a compiled binary *without* the source files nearby (for example, profiling a binary on a server where the source isn't cloned), **it will still work perfectly**. The timelines, flame graphs, and function names will display normally; you just won't be able to look at the inline source code view.
+* **Debug Symbols (Mandatory for Names):** When you compile with `debug = true`, the compiler embeds mapping
+  data (function names, file paths, line numbers) into your binary. **`samply` requires this.** Without it,
+  you will only see memory addresses (e.g., `0x7fff81a03f4`).
+* **Source Code Files (Optional for UI):** `samply` reads the file paths stored in those debug symbols and
+  looks for those `.rs` files on your hard drive.
+* If the source code files *are* present, `samply` serves them locally so you can click a function name and
+  view the lines of code with their execution counts.
+* If you run `samply` on a compiled binary *without* the source files nearby (for example, profiling a
+  binary on a server where the source isn't cloned), **it will still work perfectly**. The timelines, flame
+  graphs, and function names will display normally; you just won't be able to look at the inline source code
+  view.
 
 
 
@@ -322,10 +334,18 @@ To clarify how `samply` resolves your code, understand that there are two distin
 
 ### Why it works this way:
 
-1. **Zero-Overhead Philosophy:** Real-time web streaming requires a lot of CPU cycles and memory allocations just to format and transmit the data. If a profiler did this in real time, it would drastically distort your application's actual performance (a phenomenon known as the *observer effect*).
-2. **The Workflow:** While your application runs, `samply` quietly and quickly streams raw, compact binary data (the stack samples) into a temporary local file or RAM buffer.
-3. **The Trigger:** The second your application calls `std::process::exit`, finishes its execution, or you stop it with `Ctrl+C`, `samply` intercepts the exit, processes the recorded data chunk, starts its local symbol server, and pops open the Firefox Profiler browser tab.
+1. **Zero-Overhead Philosophy:** Real-time web streaming requires a lot of CPU cycles and memory allocations
+   just to format and transmit the data. If a profiler did this in real time, it would drastically distort
+   your application's actual performance (a phenomenon known as the *observer effect*).
+2. **The Workflow:** While your application runs, `samply` quietly and quickly streams raw, compact binary
+   data (the stack samples) into a temporary local file or RAM buffer.
+3. **The Trigger:** The second your application calls `std::process::exit`, finishes its execution, or you
+   stop it with `Ctrl+C`, `samply` intercepts the exit, processes the recorded data chunk, starts its local
+   symbol server, and pops open the Firefox Profiler browser tab.
 
 ### If you need real-time updates:
 
-If your use case absolutely demands watching a live dashboard while the code is actively executing (for example, keeping an eye on a live web server), you should bypass `samply` and use **`tokio-console`** or a dedicated tracing dashboard. They are instrumented specifically to stream diagnostic events out of a running application in real time.
+If your use case absolutely demands watching a live dashboard while the code is actively executing (for
+example, keeping an eye on a live web server), you should bypass `samply` and use **`tokio-console`** or a
+dedicated tracing dashboard. They are instrumented specifically to stream diagnostic events out of a running
+application in real time.
