@@ -452,3 +452,140 @@ performance.** The true differentiator is no longer runtime speed, but rather *h
 accomplished: C relies on explicit programmer meticulousness to avoid catastrophic UB vulnerabilities, while
 Rust relies on strict, compiler-enforced types and safety boundaries to yield equivalent performance safely
 out of the box.
+
+---
+# part 3: 
+
+## Pointer, Raw pointer:
+
+### pointer :
+
+- **pointer**: is a general concept: something that refers to another value in memory. 
+
+- **raw pointer**: is a specific kind of pointer in Rust ( `*cont T` or `*mut T` ) that has **no safety
+  guarantees** 
+
+=> All raw pointer are pointers but not all pointers are raw pointer. 
+
+- Pointer can be anything that can locate or access another value:
+
+- In rust these are all pointer in a broad sense:
+    - References (`&T`, `&mut T`)
+    - Raw pointers ( `*const T`, `*mut T`)
+    - `Box<T>`
+    - `Rc<T>`
+    - `Arc<T>`
+    - `NonNull<T>`
+
+```rust 
+let x = 10;
+
+let r = &x;          // reference pointer
+let b = Box::new(5); // smart pointer
+```
+
+Both `r` and `b` are pointers as they let you access another value.
+
+### Raw pointer: 
+
+A raw pointer is Rust's equivalent of a C pointer.
+
+```rust 
+    let x = 10;
+    let p: *const i32 = &x;
+```
+or 
+```rust 
+    let mut x = 10;
+    let p: *mut i32 = &mut x;
+```
+
+- Raw pointers are written as `*cont T` or `*mut T`
+
+** Why are they called Raw?**
+
+Because Rust does not enforce its normal safety rules:
+A raw pointer:
+- doesn't  guarantees the value exists 
+- may be null 
+- may be dangling 
+- ignores *borrowing* rules 
+- can alias mutable memory 
+- cannot be dereferenced safely. 
+
+```rust 
+    let x = 10;
+    let p = &x as *cont i32;
+
+    unsafe {
+        println!("{}", *p);
+    }
+```
+
+- Rust requires `unsafe` because it cannot verify that `p` is valid.
+
+
+## References vs Raw pointers:
+
+- Reference:
+```rust 
+    let x = 10;
+    let r = &x;
+```
+Rust guarantees:
+    - not null 
+    - points to valid memory 
+    - obeys borrowing rules 
+    - lifetime checked 
+    - safe to dereference 
+
+You simply write: ` println!("{}", *r);`
+
+No `unsafe` required. 
+
+Raw Pointer:
+```rust 
+    let x = 10;
+    let p = &x *cont i32;
+```
+
+Rust guarantees nothing; 
+
+To read 
+```rust 
+    unsafe {
+        println!("{}", *p); 
+    }
+```
+
+## Smart pointer vs Raw pointers :
+
+Consider `let b = Box::new(5);`
+
+Internally `Box` stores a raw pointer to heap memory. 
+
+Conceptually: 
+```text 
+Stack
++------------------+
+| Box              |
+| raw pointer -----|--------+
++------------------+        |
+                            |
+                            V
+                        Heap
+                     +---------+
+                     |    5    |
+                     +---------+
+```
+
+Raw pointer is hidden inside the smart pointer. 
+`Box` uses it internally while ensuring safety through owenership and `Drop`.
+
+
+- A useful way to think about it is:
+    - Pointer = the general idea of something that points to data.
+    - Raw pointer = the lowest-level, C-style pointer with no built-in safety.
+    - Reference = a safe, non-owning pointer enforced by Rust's borrow checker.
+    - Smart pointer = a type that owns or manages data while providing additional behavior (such as
+      automatic cleanup, shared ownership, or interior mutability), often using a raw pointer internally.
