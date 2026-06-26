@@ -1,22 +1,20 @@
 ### **Learning Rust Structures: A Comprehensive Guide**
 
-In Rust, **structures** (or **structs**) are custom data types that let you encapsulate data into a single unit. They are essential for organizing and managing related data in an intuitive and efficient way. This guide will walk you through the core concepts of structs in Rust, accompanied by detailed examples and exercises to solidify your understanding.
+In Rust, **structures** (or **structs**) are custom data types that let you encapsulate data into a single
+unit. They are essential for organizing and managing related data in an intuitive and efficient way. This
+guide will walk you through the core concepts of structs in Rust, accompanied by detailed examples and
+exercises to solidify your understanding.
 
 ---
 
 ### **1. Introduction to Rust Structures**
 
-A **struct** is a custom data type that lets you group related data into a single unit. It allows you to define the shape of a complex type with multiple fields. 
+A **struct** is a custom data type that lets you group related data into a single unit. It allows you to
+define the shape of a complex type with multiple fields. 
 
 #### Syntax:
 
-```rust
-struct StructName {
-    field1: Type1,
-    field2: Type2,
-    // more fields
-}
-```
+```rust struct StructName { field1: Type1, field2: Type2, // more fields } ```
 
 In the syntax above:
 
@@ -26,14 +24,10 @@ In the syntax above:
 
 #### Example:
 
-```rust
-struct Person {
-    name: String,
-    age: u32,
-}
-```
+```rust struct Person { name: String, age: u32, } ```
 
-In this example, we’ve defined a `Person` struct that holds a `name` of type `String` and an `age` of type `u32`.
+In this example, we’ve defined a `Person` struct that holds a `name` of type `String` and an `age` of type
+`u32`.
 
 ---
 
@@ -43,21 +37,11 @@ You can create instances of structs by specifying values for each of the fields.
 
 #### Example:
 
-```rust
-struct Person {
-    name: String,
-    age: u32,
-}
+```rust struct Person { name: String, age: u32, }
 
-fn main() {
-    let person1 = Person {
-        name: String::from("Alice"),
-        age: 30,
-    };
+fn main() { let person1 = Person { name: String::from("Alice"), age: 30, };
 
-    println!("Name: {}, Age: {}", person1.name, person1.age);
-}
-```
+    println!("Name: {}, Age: {}", person1.name, person1.age); } ```
 
 **Explanation:**
 
@@ -72,21 +56,11 @@ Once a struct instance is created, you can access the fields using dot notation.
 
 #### Example:
 
-```rust
-struct Rectangle {
-    width: u32,
-    height: u32,
-}
+```rust struct Rectangle { width: u32, height: u32, }
 
-fn main() {
-    let rect = Rectangle {
-        width: 20,
-        height: 10,
-    };
+fn main() { let rect = Rectangle { width: 20, height: 10, };
 
-    println!("Width: {}, Height: {}", rect.width, rect.height);
-}
-```
+    println!("Width: {}, Height: {}", rect.width, rect.height); } ```
 
 **Explanation:**
 
@@ -97,18 +71,14 @@ fn main() {
 
 ### **4. Tuple Structs**
 
-In addition to the traditional named fields, Rust also allows **tuple structs**. A tuple struct is similar to a tuple but with a name, allowing you to create types with unnamed fields.
+In addition to the traditional named fields, Rust also allows **tuple structs**. A tuple struct is similar
+to a tuple but with a name, allowing you to create types with unnamed fields.
 
 #### Example:
 
-```rust
-struct Point(i32, i32);
+```rust struct Point(i32, i32);
 
-fn main() {
-    let p = Point(10, 20);
-    println!("Point coordinates: ({}, {})", p.0, p.1);
-}
-```
+fn main() { let p = Point(10, 20); println!("Point coordinates: ({}, {})", p.0, p.1); } ```
 
 **Explanation:**
 
@@ -119,32 +89,19 @@ fn main() {
 
 ### **5. Struct Methods (Implementing Functions)**
 
-You can associate methods with structs using **`impl`** blocks. Methods are functions defined inside an `impl` block, and they can access the fields of the struct.
+You can associate methods with structs using **`impl`** blocks. Methods are functions defined inside an
+`impl` block, and they can access the fields of the struct.
 
 #### Example:
 
-```rust
-struct Circle {
-    radius: f64,
-}
+```rust struct Circle { radius: f64, }
 
-impl Circle {
-    // Method to calculate area
-    fn area(&self) -> f64 {
-        std::f64::consts::PI * self.radius * self.radius
-    }
+impl Circle { // Method to calculate area fn area(&self) -> f64 { std::f64::consts::PI * self.radius *
+self.radius }
 
-    // Method to create a new circle
-    fn new(radius: f64) -> Self {
-        Circle { radius }
-    }
-}
+    // Method to create a new circle fn new(radius: f64) -> Self { Circle { radius } } }
 
-fn main() {
-    let circle = Circle::new(5.0);
-    println!("Area of the circle: {}", circle.area());
-}
-```
+fn main() { let circle = Circle::new(5.0); println!("Area of the circle: {}", circle.area()); } ```
 
 **Explanation:**
 
@@ -155,58 +112,43 @@ fn main() {
 
 ### **6. Structs with Default Values**
 
-Rust provides the `Default` trait, which you can implement for your structs to provide default values for all fields.
+Rust provides the `Default` trait, which you can implement for your structs to provide default values for
+all fields.
 
 #### Example:
 
-```rust
-#[derive(Default)]
-struct Rectangle {
-    width: u32,
-    height: u32,
-}
+```rust #[derive(Default)] struct Rectangle { width: u32, height: u32, }
 
-fn main() {
-    let rect: Rectangle = Default::default();
-    println!("Width: {}, Height: {}", rect.width, rect.height);
-}
-```
+fn main() { let rect: Rectangle = Default::default(); println!("Width: {}, Height: {}", rect.width,
+rect.height); } ```
 
 **Explanation:**
 
-- We derive the `Default` trait for the `Rectangle` struct, which automatically generates a `default()` method.
+- We derive the `Default` trait for the `Rectangle` struct, which automatically generates a `default()`
+  method.
 - The default values for `u32` are `0`, so `width` and `height` are both `0`.
 
 ---
 
 ### **7. Structs with Lifetimes**
 
-Rust uses **lifetimes** to ensure that references inside structs are valid. A struct that contains references needs a lifetime parameter to specify how long the reference is valid.
+Rust uses **lifetimes** to ensure that references inside structs are valid. A struct that contains
+references needs a lifetime parameter to specify how long the reference is valid.
 
 #### Example:
 
-```rust
-struct Book<'a> {
-    title: &'a str,
-    author: &'a str,
-}
+```rust struct Book<'a> { title: &'a str, author: &'a str, }
 
-fn main() {
-    let title = String::from("Rust Programming");
-    let author = String::from("John Doe");
+fn main() { let title = String::from("Rust Programming"); let author = String::from("John Doe");
 
-    let book = Book {
-        title: &title,
-        author: &author,
-    };
+    let book = Book { title: &title, author: &author, };
 
-    println!("Book: {} by {}", book.title, book.author);
-}
-```
+    println!("Book: {} by {}", book.title, book.author); } ```
 
 **Explanation:**
 
-- The struct `Book` has lifetime parameters `'a`, meaning the references inside `Book` must live at least as long as the lifetime `'a`.
+- The struct `Book` has lifetime parameters `'a`, meaning the references inside `Book` must live at least as
+  long as the lifetime `'a`.
 
 ---
 
@@ -214,19 +156,23 @@ fn main() {
 
 #### Exercise 1: Create a `Car` Struct
 
-Create a `Car` struct with fields like `make`, `model`, and `year`. Implement a method `display_info` that prints the car’s details.
+Create a `Car` struct with fields like `make`, `model`, and `year`. Implement a method `display_info` that
+prints the car’s details.
 
 #### Exercise 2: Implement a `Square` Struct
 
-Define a `Square` struct with a field `side_length` of type `u32`. Implement a method `area` that returns the area of the square.
+Define a `Square` struct with a field `side_length` of type `u32`. Implement a method `area` that returns
+the area of the square.
 
 #### Exercise 3: Tuple Struct for Point
 
-Create a tuple struct named `Point3D` that holds three `f64` values: `x`, `y`, and `z`. Implement a method to calculate the distance between two points.
+Create a tuple struct named `Point3D` that holds three `f64` values: `x`, `y`, and `z`. Implement a method
+to calculate the distance between two points.
 
 #### Exercise 4: Struct with Ownership
 
-Write a struct called `Person` that holds a `String` for a name and an `i32` for an age. Write a method `greeting` that returns a greeting message using the name.
+Write a struct called `Person` that holds a `String` for a name and an `i32` for an age. Write a method
+`greeting` that returns a greeting message using the name.
 
 ---
 
@@ -236,27 +182,16 @@ Write a struct called `Person` that holds a `String` for a name and an `i32` for
 
 You can use `enum` along with structs to represent complex types.
 
-```rust
-enum Shape {
-    Circle { radius: f64 },
-    Rectangle { width: f64, height: f64 },
-}
+```rust enum Shape { Circle { radius: f64 }, Rectangle { width: f64, height: f64 }, }
 
-fn area(shape: Shape) -> f64 {
-    match shape {
-        Shape::Circle { radius } => std::f64::consts::PI * radius * radius,
-        Shape::Rectangle { width, height } => width * height,
-    }
-}
-```
+fn area(shape: Shape) -> f64 { match shape { Shape::Circle { radius } => std::f64::consts::PI * radius *
+radius, Shape::Rectangle { width, height } => width * height, } } ```
 
 #### b. Struct Update Syntax
 
 Rust allows you to create a new struct instance based on an existing one, updating only some fields:
 
-```rust
-let new_rect = Rectangle { height: 15, ..rect };
-```
+```rust let new_rect = Rectangle { height: 15, ..rect }; ```
 
 This syntax updates the `height` while copying the other fields from the `rect` instance.
 
@@ -264,9 +199,12 @@ This syntax updates the `height` while copying the other fields from the `rect` 
 
 ### **10. Conclusion**
 
-Rust structs are powerful tools for organizing and managing related data. Whether you’re defining basic structures, creating methods, or using advanced features like lifetimes, Rust provides many ways to work with and manipulate structured data efficiently.
+Rust structs are powerful tools for organizing and managing related data. Whether you’re defining basic
+structures, creating methods, or using advanced features like lifetimes, Rust provides many ways to work
+with and manipulate structured data efficiently.
 
-By practicing with examples and exercises, you can deepen your understanding and use structs in a variety of Rust applications.
+By practicing with examples and exercises, you can deepen your understanding and use structs in a variety of
+Rust applications.
 
 ---
 
@@ -284,7 +222,9 @@ Rust structures as Classes:
 
 ### **Rust Structures and Classes: A Detailed Explanation**
 
-- Rust doesn't have **classes** in the traditional object-oriented programming sense, as found in languages like Java or C++. However, Rust's **structures** (`structs`) can provide similar functionality to classes, particularly when used in combination with **methods** and **traits**.
+- Rust doesn't have **classes** in the traditional object-oriented programming sense, as found in languages
+  like Java or C++. However, Rust's **structures** (`structs`) can provide similar functionality to classes,
+  particularly when used in combination with **methods** and **traits**.
 
 - Rust structures allow for :
   
@@ -296,10 +236,12 @@ Rust structures as Classes:
     
     Must like classes in other languages.
 
-- However, Rust encourages composition and behavior-based design patterns over traditional inheritance-based OOP (Object-Oriented Programming).
+- However, Rust encourages composition and behavior-based design patterns over traditional inheritance-based
+  OOP (Object-Oriented Programming).
   
 
-In this guide, we'll explain how Rust structures can function like classes and walk through several examples and exercises for practice.
+In this guide, we'll explain how Rust structures can function like classes and walk through several examples
+and exercises for practice.
 
 ---
 
@@ -354,12 +296,15 @@ fn main() {
 **Explanation:**
 
 - The `Person` struct holds data for a person's `name` and `age`, much like a class.
-- The `impl` block defines methods associated with the struct. In this case, `new` acts as a constructor, `greet` prints a message, and `have_birthday` updates the person's age.
-- The `greet` and `have_birthday` methods operate on the struct fields, providing functionality similar to class methods in OOP.
+- The `impl` block defines methods associated with the struct. In this case, `new` acts as a constructor,
+  `greet` prints a message, and `have_birthday` updates the person's age.
+- The `greet` and `have_birthday` methods operate on the struct fields, providing functionality similar to
+  class methods in OOP.
 
 ### **2. Methods in Rust Structs (like Class Methods)**
 
-Rust allows you to define methods on structs through the `impl` block, which is similar to defining methods within a class in other languages.
+Rust allows you to define methods on structs through the `impl` block, which is similar to defining methods
+within a class in other languages.
 
 #### Example of Methods:
 
@@ -399,13 +344,15 @@ fn main() {
 **Explanation:**
 
 - The `Rectangle` struct contains the fields `width` and `height`.
-- The methods `area` and `set_width` allow the struct to perform actions like calculating the area and changing the width, similar to how methods would work in an object-oriented class.
+- The methods `area` and `set_width` allow the struct to perform actions like calculating the area and
+  changing the width, similar to how methods would work in an object-oriented class.
 
 ---
 
 ### **3. Structs and Traits (Polymorphism in Rust)**
 
-While Rust does not have inheritance like OOP languages, you can achieve **polymorphism** using **traits**. A trait in Rust defines behavior that can be shared across types.
+While Rust does not have inheritance like OOP languages, you can achieve **polymorphism** using **traits**.
+A trait in Rust defines behavior that can be shared across types.
 
 #### Example of Traits (like Interfaces in Classes):
 
@@ -461,13 +408,16 @@ fn main() {
 
 - **`Shape` trait** defines common methods `area` and `perimeter`.
 - Both `Circle` and `Rectangle` structs implement the `Shape` trait.
-- We use dynamic dispatch with `&dyn Shape` to pass different shapes to the `print_shape_info` function, demonstrating polymorphism (similar to using base class references or interfaces in OOP).
+- We use dynamic dispatch with `&dyn Shape` to pass different shapes to the `print_shape_info` function,
+  demonstrating polymorphism (similar to using base class references or interfaces in OOP).
 
 ---
 
 ### **4. Structs with Private Fields (Encapsulation)**
 
-Just like classes in OOP, you can control visibility and ensure that fields are only modified through specific methods (encapsulation). In Rust, fields are private by default, and you can define public methods to access and modify them.
+Just like classes in OOP, you can control visibility and ensure that fields are only modified through
+specific methods (encapsulation). In Rust, fields are private by default, and you can define public methods
+to access and modify them.
 
 #### Example of Encapsulation:
 
@@ -519,19 +469,24 @@ fn main() {
 
 **Explanation:**
 
-- The `BankAccount` struct has a private field `balance`, which cannot be accessed directly from outside the struct.
-- The `deposit`, `withdraw`, and `get_balance` methods provide controlled access to the private `balance` field, which is similar to getters and setters in OOP.
+- The `BankAccount` struct has a private field `balance`, which cannot be accessed directly from outside the
+  struct.
+- The `deposit`, `withdraw`, and `get_balance` methods provide controlled access to the private `balance`
+  field, which is similar to getters and setters in OOP.
 
 ---
 
 ### **5. Rust Structures as Classes: A Summary**
 
-Although Rust doesn’t have traditional object-oriented **classes**, structs provide a powerful way to structure data and methods:
+Although Rust doesn’t have traditional object-oriented **classes**, structs provide a powerful way to
+structure data and methods:
 
 - **Encapsulation**: Fields are private by default and can be accessed or modified through methods.
 - **Methods**: Functions inside an `impl` block act like methods in a class.
-- **Polymorphism**: Using traits, Rust allows different types to share behavior, achieving polymorphism (though without inheritance).
-- **Composition over Inheritance**: Rust favors composition over inheritance, which is more flexible and safer.
+- **Polymorphism**: Using traits, Rust allows different types to share behavior, achieving polymorphism
+  (though without inheritance).
+- **Composition over Inheritance**: Rust favors composition over inheritance, which is more flexible and
+  safer.
 
 ---
 
@@ -546,14 +501,18 @@ Create a `Car` struct that has fields like `model`, `year`, and `price`. Impleme
 
 #### Exercise 2: Rectangle and Circle Area Calculation
 
-Implement a `Shape` trait and create structs `Rectangle` and `Circle`. Both structs should implement the `area` method from the `Shape` trait. Use a function that prints the area of any `Shape`.
+Implement a `Shape` trait and create structs `Rectangle` and `Circle`. Both structs should implement the
+`area` method from the `Shape` trait. Use a function that prints the area of any `Shape`.
 
 #### Exercise 3: BankAccount with Transfer
 
-Extend the `BankAccount` example by adding a method to transfer money from one account to another. Ensure that both accounts are checked for sufficient funds.
+Extend the `BankAccount` example by adding a method to transfer money from one account to another. Ensure
+that both accounts are checked for sufficient funds.
 
 Additional exercises:
-related to **systems programming** or **physics/math** that involve Rust structs, methods, and traits. These exercises aim to strengthen your understanding of how to work with structs in a more technical, real-world context.
+related to **systems programming** or **physics/math** that involve Rust structs, methods, and traits. These
+exercises aim to strengthen your understanding of how to work with structs in a more technical, real-world
+context.
 
 ---
 
@@ -561,7 +520,8 @@ related to **systems programming** or **physics/math** that involve Rust structs
 
 #### **Exercise 1: Memory Block Allocation**
 
-In systems programming, managing memory is critical. Create a `MemoryBlock` struct that represents a chunk of allocated memory with a specified size. Implement methods to:
+In systems programming, managing memory is critical. Create a `MemoryBlock` struct that represents a chunk
+of allocated memory with a specified size. Implement methods to:
 1. Initialize a memory block with a size.
 2. Reallocate the block to a larger size.
 3. Check if the block can hold a given size of data.
@@ -611,7 +571,8 @@ fn main() {
 
 #### **Exercise 2: Vector Mathematics (Physics)**
 
-In physics simulations, vectors are used to represent quantities like force and velocity. Implement a `Vector2D` struct that represents a 2D vector and provides methods to:
+In physics simulations, vectors are used to represent quantities like force and velocity. Implement a
+`Vector2D` struct that represents a 2D vector and provides methods to:
 1. Add two vectors.
 2. Subtract two vectors.
 3. Compute the magnitude of the vector.
@@ -668,15 +629,18 @@ fn main() {
 
 #### **Exercise 3: Simulate a Particle in Physics (Projectile Motion)**
 
-Simulate a particle moving under constant gravitational force. Create a `Particle` struct that contains its initial position, velocity, and acceleration due to gravity. Implement methods to:
+Simulate a particle moving under constant gravitational force. Create a `Particle` struct that contains its
+initial position, velocity, and acceleration due to gravity. Implement methods to:
 1. Compute the new position of the particle after a given time step.
 2. Compute the new velocity of the particle after a given time step.
 3. Output the position and velocity after several time steps.
 
 **Instructions:**
-- Define a `Particle` struct with fields for position (`x` and `y`), velocity (`vx` and `vy`), and acceleration (`ax` and `ay` due to gravity).
+- Define a `Particle` struct with fields for position (`x` and `y`), velocity (`vx` and `vy`), and
+  acceleration (`ax` and `ay` due to gravity).
 - Implement methods `update_position` and `update_velocity` to simulate movement over time.
-- Create a loop that simulates the motion for a series of time steps and prints the position and velocity at each step.
+- Create a loop that simulates the motion for a series of time steps and prints the position and velocity at
+  each step.
 
 ```rust
 struct Particle {
@@ -727,7 +691,8 @@ fn main() {
 
 #### **Exercise 4: File System Simulation**
 
-In systems programming, you often need to work with file systems. Create a `File` struct that simulates a basic file with a `name`, `size`, and `read/write` methods. Implement methods to:
+In systems programming, you often need to work with file systems. Create a `File` struct that simulates a
+basic file with a `name`, `size`, and `read/write` methods. Implement methods to:
 1. Write data to the file (increase its size).
 2. Read data from the file (decrease its size).
 
@@ -786,7 +751,10 @@ fn main() {
 ---
 
 ### **Conclusion**
-These exercises are designed to deepen your understanding of Rust structs and methods in the context of **systems programming** and **physics/math**. They cover topics such as memory management, vector mathematics, simulation of physical phenomena (like particle motion), and basic file system simulations—all of which are commonly encountered in systems-level programming.
+These exercises are designed to deepen your understanding of Rust structs and methods in the context of
+**systems programming** and **physics/math**. They cover topics such as memory management, vector
+mathematics, simulation of physical phenomena (like particle motion), and basic file system simulations—all
+of which are commonly encountered in systems-level programming.
 
 By completing these exercises, you'll learn how to:
 - Handle low-level memory operations.
@@ -794,11 +762,653 @@ By completing these exercises, you'll learn how to:
 - Simulate real-world physical systems using computational methods.
 - Work with file systems and manage file-related data.
 
-These practical examples will help you better understand how to leverage Rust's struct-based design for efficient and flexible systems programming.
+These practical examples will help you better understand how to leverage Rust's struct-based design for
+efficient and flexible systems programming.
 ---
 
 ### **7. Conclusion**
 
-While Rust does not support classes in the traditional sense, its powerful `structs`, methods, and traits allow you to create complex data structures and implement behavior similar to what classes offer in other languages. Through composition, encapsulation, and polymorphism, Rust provides flexible tools for organizing and managing data in a structured way.
+While Rust does not support classes in the traditional sense, its powerful `structs`, methods, and traits
+allow you to create complex data structures and implement behavior similar to what classes offer in other
+languages. Through composition, encapsulation, and polymorphism, Rust provides flexible tools for organizing
+and managing data in a structured way.
 
-By practicing with examples and exercises, you can gain a deeper understanding of how to use Rust's structures to model real-world concepts and build efficient, clean software.
+By practicing with examples and exercises, you can gain a deeper understanding of how to use Rust's
+structures to model real-world concepts and build efficient, clean software.
+
+---
+
+# Smartpointers 
+
+A smart pointer in Rust is **a struct that owns or manages some data**, usually by storing a pointer 
+internally, while also providing additional behavior such as automatic cleanup, shared ownership, interior 
+mutability, or heap allocation.
+
+For example, conceptually:
+
+```rust
+struct SmartPtr<T> {
+    ptr: *mut T,    // or some other representation of a pointer
+    metadata: ...,  // reference counts, allocator info, etc.
+}
+```
+
+The "smart" part comes from the behavior implemented for the type, not just because it contains a pointer.
+
+For example:
+
+```rust
+struct SmartPtr<T> {
+    value: T,
+}
+
+impl<T> SmartPtr<T> {
+    fn new(value: T) -> Self {
+        SmartPtr { value }
+    }
+
+    fn cap1(&self) {
+        println!("Doing something useful");
+    }
+}
+```
+
+This by itself is **not yet a full smart pointer** because it doesn't behave like a pointer.
+
+To make it pointer-like, Rust's standard smart pointers implement traits such as:
+
+```rust
+use std::ops::Deref;
+
+impl<T> Deref for SmartPtr<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+```
+
+Now you can write:
+
+```rust
+let x = SmartPtr::new(String::from("hello"));
+
+println!("{}", x.len()); // Works because of Deref
+```
+
+Rust automatically dereferences `x` to access the `String`.
+
+---
+
+### Automatic cleanup
+
+Another important capability is implementing `Drop`:
+
+```rust
+impl<T> Drop for SmartPtr<T> {
+    fn drop(&mut self) {
+        println!("Cleaning up!");
+    }
+}
+```
+
+When the smart pointer goes out of scope, Rust automatically calls `drop()`.
+
+This is how types like:
+
+* `Box<T>` → frees heap memory
+* `Rc<T>` → decrements a reference count
+* `Arc<T>` → atomically decrements a reference count
+* `Mutex<T>` → releases a lock when the guard is dropped
+
+all perform cleanup automatically.
+
+---
+
+### Building your own smart pointer
+
+You can absolutely build your own smart pointer.
+
+A minimal custom smart pointer usually consists of:
+
+```rust
+struct MyBox<T> {
+    value: T,
+}
+
+impl<T> MyBox<T> {
+    fn new(value: T) -> Self {
+        MyBox { value }
+    }
+}
+
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+
+impl<T> Drop for MyBox<T> {
+    fn drop(&mut self) {
+        println!("Dropping MyBox");
+    }
+}
+```
+
+Now `MyBox<T>` behaves much more like a real smart pointer.
+
+---
+
+Define: SmartPointer: 
+
+**A smart pointer is a type that owns or manages access to some data (often through a pointer) while 
+providing additional behavior through traits like `Deref`, `Drop`, and others.**
+
+The "smartness" comes from the behavior, not merely from storing a pointer. In fact, some smart pointers
+(like `Box<T>`) internally contain a pointer to heap memory, while others (like your educational `MyBox<T>`)
+can simply wrap a value and rely on Rust's ownership system. From the user's perspective, both can exhibit
+smart pointer behavior through the traits they implement.
+
+--- 
+
+Rust is that the standard library teaches smart pointers in a progression:
+
+- Box<T> — simplest smart pointer (heap allocation).
+- Deref trait — how smart pointers behave like references.
+- Drop trait — automatic cleanup.
+- Rc<T> — multiple ownership.
+- RefCell<T> — borrow checking at runtime.
+- Rc<RefCell<T>> — shared ownership with mutable access.
+- Arc<T> and Mutex<T> — the thread-safe versions.
+
+Each one adds a new capability while reinforcing the same ownership principles, so they build on one another
+rather than being completely separate concepts.
+
+--- 
+
+## Overview
+
+A **smart pointer** is a custom type (usually a `struct`) that manages access to some data while providing
+additional capabilities beyond a normal reference or raw pointer.
+
+Unlike raw pointers, smart pointers have **ownership semantics** and **behavior** built into them.
+
+---
+
+## Mental Model
+
+Think of a smart pointer as:
+
+```text
+SmartPtr<T>
++------------------------------+
+| Pointer / Owned Data         |
++------------------------------+
+| Metadata                     |
+| - Reference Count            |
+| - Capacity                   |
+| - Allocator Info             |
+| - Borrow State               |
+| - Lock State                 |
++------------------------------+
+| Capabilities                 |
+| - Deref                      |
+| - Drop                       |
+| - Clone                      |
+| - Borrow Checking            |
+| - Thread Safety              |
++------------------------------+
+```
+
+Or conceptually:
+
+```rust
+SmartPtr<T> {
+    pointer_or_data,
+    metadata,
+}
+```
+
+The **metadata** depends on the smart pointer.
+
+Examples:
+
+* `Box<T>` → Heap allocation information
+* `Rc<T>` → Reference count
+* `Arc<T>` → Atomic reference count
+* `RefCell<T>` → Runtime borrow state
+* `Mutex<T>` → Lock state
+
+---
+
+# Why Smart Pointers?
+
+Normal references (`&T`) only let you borrow data.
+
+Smart pointers provide additional functionality such as:
+
+* Automatic cleanup
+* Heap allocation
+* Shared ownership
+* Interior mutability
+* Thread safety
+* Custom behavior
+
+---
+
+# A Simple Custom Smart Pointer
+
+```rust
+struct SmartPtr<T> {
+    value: T,
+}
+
+impl<T> SmartPtr<T> {
+    fn new(value: T) -> Self {
+        SmartPtr { value }
+    }
+
+    fn capability(&self) {
+        println!("Extra behavior!");
+    }
+}
+```
+
+This is simply a wrapper around `T`.
+
+At this point, it is **not yet fully pointer-like**.
+
+---
+
+# What Makes It "Smart"?
+
+The smartness comes from implementing Rust traits.
+
+The most common ones are:
+
+## 1. Deref
+
+Makes the smart pointer behave like a reference.
+
+```rust
+use std::ops::Deref;
+
+impl<T> Deref for SmartPtr<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+```
+
+Now Rust can automatically dereference your smart pointer.
+
+Example:
+
+```rust
+let x = SmartPtr::new(String::from("Hello"));
+
+println!("{}", x.len());
+```
+
+Rust automatically calls `deref()`.
+
+---
+
+## 2. Drop
+
+Provides automatic cleanup.
+
+```rust
+impl<T> Drop for SmartPtr<T> {
+    fn drop(&mut self) {
+        println!("Cleaning resources...");
+    }
+}
+```
+
+Whenever the smart pointer leaves scope:
+
+```rust
+{
+    let x = SmartPtr::new(10);
+}
+// drop() automatically runs here
+```
+
+This is called **RAII (Resource Acquisition Is Initialization)**.
+
+---
+
+# Smart Pointer vs Raw Pointer
+
+## Raw Pointer
+
+```text
+Pointer
+   |
+   V
+Memory
+```
+
+A raw pointer is simply an address.
+
+It has:
+
+* No ownership
+* No cleanup
+* No safety guarantees
+
+---
+
+## Smart Pointer
+
+```text
+Smart Pointer
++---------------------+
+| Pointer             |
+| Metadata            |
+| Ownership Rules     |
+| Cleanup Logic       |
++---------------------+
+        |
+        V
+      Memory
+```
+
+It knows:
+
+* Who owns the data
+* When to free it
+* How to access it safely
+* Any additional rules
+
+---
+
+# Standard Smart Pointers in Rust
+
+## Box<T>
+
+Purpose:
+
+* Store data on the heap.
+
+Characteristics:
+
+* Single owner
+* Heap allocation
+* Zero runtime overhead
+
+Example:
+
+```rust
+let x = Box::new(5);
+```
+
+Think:
+
+> "Move this value to the heap."
+
+---
+
+## Rc<T>
+
+Purpose:
+
+* Shared ownership.
+
+Characteristics:
+
+* Multiple owners
+* Reference counting
+* Single-threaded
+
+Example:
+
+```rust
+use std::rc::Rc;
+
+let a = Rc::new(10);
+let b = Rc::clone(&a);
+```
+
+Memory is freed only when the last owner disappears.
+
+---
+
+## Arc<T>
+
+Purpose:
+
+* Shared ownership across threads.
+
+Characteristics:
+
+* Atomic reference counting
+* Thread-safe
+
+Example:
+
+```rust
+use std::sync::Arc;
+
+let data = Arc::new(vec![1,2,3]);
+```
+
+Think:
+
+> "Rc, but safe for multiple threads."
+
+---
+
+## RefCell<T>
+
+Purpose:
+
+Interior mutability.
+
+Allows mutation even when the value itself is immutable.
+
+Borrow rules are checked at **runtime** instead of compile time.
+
+Example:
+
+```rust
+use std::cell::RefCell;
+
+let value = RefCell::new(5);
+
+*value.borrow_mut() += 1;
+```
+
+---
+
+## Mutex<T>
+
+Purpose:
+
+Safe mutable access across threads.
+
+Example:
+
+```rust
+use std::sync::Mutex;
+
+let data = Mutex::new(5);
+```
+
+Only one thread can access the data at a time.
+
+---
+
+# Common Traits Used by Smart Pointers
+
+| Trait      | Purpose                                |
+| ---------- | -------------------------------------- |
+| `Deref`    | Behave like a reference                |
+| `DerefMut` | Mutable dereferencing                  |
+| `Drop`     | Automatic cleanup                      |
+| `Clone`    | Duplicate ownership (when appropriate) |
+| `Debug`    | Printing                               |
+| `Default`  | Default construction                   |
+| `Send`     | Can move across threads                |
+| `Sync`     | Can be shared across threads           |
+
+---
+
+# Ownership Comparison
+
+## Box
+
+```text
+Box
+ |
+ V
+Data
+```
+
+One owner.
+
+---
+
+## Rc
+
+```text
+Rc
+ / \
+/   \
+V   V
+Same Data
+```
+
+Many owners.
+
+---
+
+## Arc
+
+```text
+Thread 1 ----\
+              \
+               --> Shared Data
+              /
+Thread 2 ----/
+```
+
+Many owners across threads.
+
+---
+
+## RefCell
+
+```text
+Owner
+  |
+RefCell
+  |
+Borrow State
+  |
+Data
+```
+
+Borrow rules checked at runtime.
+
+---
+
+# Smart Pointer Summary
+
+| Smart Pointer | Ownership | Mutable         | Thread Safe  | Heap            |
+| ------------- | --------- | --------------- | ------------ | --------------- |
+| `Box<T>`      | Single    | Yes             | Yes (if `T`) | Yes             |
+| `Rc<T>`       | Shared    | No              | No           | Yes             |
+| `Arc<T>`      | Shared    | No              | Yes          | Yes             |
+| `RefCell<T>`  | Single    | Runtime checked | No           | Usually wrapped |
+| `Mutex<T>`    | Shared    | Yes             | Yes          | Usually wrapped |
+
+---
+
+# Building Your Own Smart Pointer
+
+Typical steps:
+
+### Step 1
+
+Create a wrapper type.
+
+```rust
+struct MyBox<T> {
+    value: T,
+}
+```
+
+---
+
+### Step 2
+
+Provide a constructor.
+
+```rust
+impl<T> MyBox<T> {
+    fn new(value: T) -> Self {
+        MyBox { value }
+    }
+}
+```
+
+---
+
+### Step 3
+
+Implement `Deref`.
+
+```rust
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+```
+
+---
+
+### Step 4
+
+Implement `Drop`.
+
+```rust
+impl<T> Drop for MyBox<T> {
+    fn drop(&mut self) {
+        println!("Dropping MyBox");
+    }
+}
+```
+
+Now your type behaves like a simple smart pointer.
+
+---
+
+# Key Takeaways
+
+* A smart pointer is **more than a pointer**.
+* It combines **data + ownership + behavior**.
+* The "smartness" comes primarily from implementing traits like `Deref` and `Drop`.
+* Different smart pointers solve different ownership problems.
+* Rust's ownership model makes smart pointers safe and predictable.
+* You can create your own smart pointers by wrapping data in a struct and implementing the appropriate traits.
+
+---
+
+# One-Line Mental Model
+
+> **Raw Pointer** = "Here is a memory address."
+
+> **Reference (`&T`)** = "Temporarily borrow this value."
+
+> **Smart Pointer** = "Own or manage this value while automatically enforcing useful rules such as cleanup,
+> shared ownership, borrowing, or thread safety."
